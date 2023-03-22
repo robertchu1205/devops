@@ -1,0 +1,45 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: haproxy
+spec:
+  selector:
+    matchLabels:
+      app: haproxy
+  template:
+    metadata:
+      labels:
+        app: haproxy
+    spec:
+      volumes:
+      - name: haproxy-config
+        configMap:
+          name: haproxy-config
+      # affinity:
+      #   podAntiAffinity:
+      #     preferredDuringSchedulingIgnoredDuringExecution:
+      #     - weight: 100
+      #       podAffinityTerm:
+      #         labelSelector:
+      #           matchExpressions:
+      #           - key: "app"
+      #             operator: "In"
+      #             values:
+      #             - "haproxy"
+      #         topologyKey: kubernetes.io/hostname
+      containers:
+      - name: haproxy
+        image: haproxy:2.0.3-alpine
+        command: ["haproxy", "-f", "/usr/local/etc/haproxy/config/haproxy.cfg"]
+        volumeMounts:
+        - name: haproxy-config
+          mountPath: /usr/local/etc/haproxy/config
+        resources:
+          requests:
+            cpu: 10m
+            memory: 30Mi
+        ports:
+        - containerPort: 8080
+          name: stats
+        - containerPort: 8000
+          name: web

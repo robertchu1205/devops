@@ -1,0 +1,10 @@
+account-master
+quote-engine
+trading-engine
+clearing-engine
+broker-adapter-engine
+execution-engine
+odd-inventory-engine
+task-engine
+datamaster
+datamasterservice

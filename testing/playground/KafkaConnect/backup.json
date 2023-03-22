@@ -1,0 +1,14 @@
+{
+  "name": "backup2",
+  "config": {
+    "connector.class": "com.spredfast.kafka.connect.s3.sink.S3SinkConnector",
+    "format.include.keys": "true",
+    "topics": "datamaster-service-public",
+    "tasks.max": "1",
+    "format": "binary",
+    "s3.bucket": "qe-preprd-kafka",
+    "value.converter": "com.spredfast.kafka.connect.s3.AlreadyBytesConverter",
+    "key.converter": "com.spredfast.kafka.connect.s3.AlreadyBytesConverter",
+    "local.buffer.dir": "/tmp"
+  }
+}

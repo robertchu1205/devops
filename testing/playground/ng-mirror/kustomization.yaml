@@ -1,0 +1,12 @@
+namespace: playground
+
+resources:
+- ./deploy.yaml
+- ./svc.yaml
+
+configMapGenerator:
+- name: mirror-conf
+  files:
+  - mirror.conf
+  options:
+    disableNameSuffixHash: true

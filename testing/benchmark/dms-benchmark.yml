@@ -1,0 +1,20 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: dms-benchmark
+  namespace: oms-live
+spec:
+  containers:
+    - name: benchmark
+      image: jordi/ab
+      resources: #同trading engine
+        limits:
+          memory: 3Gi
+        requests:
+          memory: 2Gi
+      args:
+      - -n 
+      - "100000"
+      - -c 
+      - "100"
+      - "https://algo-internal.aqumon.com/datamaster/service/api/v2/instrument/market_status?exchanges=CN"

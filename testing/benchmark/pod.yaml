@@ -1,0 +1,27 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: python-benchmark
+spec:
+  restartPolicy: Never
+  volumes:
+  - name: scripts
+    configMap:
+      name: python-benchmark-scripts
+  containers:
+    - name: python-benchmark
+      image: python:3.8.10
+      resources: #同trading engine
+        limits:
+          memory: 3Gi
+        requests:
+          memory: 2Gi
+      volumeMounts:
+      - name: scripts
+        mountPath: /scripts
+      workingDir: /tmp
+      command:
+      - /bin/bash
+      - -c
+      - python /scripts/request-stress-test.py
+      # - echo "172.18.12.23 algo-live.aqumon.com" >> /etc/hosts && python /scripts/request-stress-test.py

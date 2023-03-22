@@ -1,0 +1,13 @@
+resources:
+- ./pod.yaml
+
+# namespace: oms-live
+namespace: default
+
+configMapGenerator:
+- name: python-benchmark-scripts
+  files:
+  - ./request-stress-test.py
+
+generatorOptions:
+  disableNameSuffixHash: true

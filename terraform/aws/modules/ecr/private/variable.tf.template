@@ -1,0 +1,4 @@
+ variable "repository" {
+  type = list
+  default = [var-list]
+ }

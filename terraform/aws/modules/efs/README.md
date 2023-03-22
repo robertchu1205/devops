@@ -1,0 +1,1 @@
+# [reference](https://medium.com/avmconsulting-blog/creating-efs-file-system-and-mount-targets-using-terraform-6f8890201b13)

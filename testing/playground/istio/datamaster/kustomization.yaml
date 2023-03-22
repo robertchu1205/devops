@@ -1,0 +1,18 @@
+resources:
+  - ./haproxy.yaml
+  - ./service.yaml
+
+replicas:
+- name: haproxy
+  count: 1
+
+commonLabels:
+  version: v1
+  service: to-mirror
+
+configMapGenerator:
+- name: haproxy-config
+  files:
+  - haproxy.cfg
+  options:
+    disableNameSuffixHash: true

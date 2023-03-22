@@ -1,0 +1,19 @@
+geo $remote_addr $where_from {
+  default 0;
+  10.1.2.0/24 1;
+}
+
+server {
+  listen 38080
+  server_name _;
+  location / {
+    if ($where_from = 0) {
+      proxy_pass http://192.168.11.246:33380/;
+    }
+    if ($where_from = 1) {
+      proxy_pass http://192.168.11.246:33380/aa/;
+    }
+    
+    return 403; # Anyone else would get a 403
+  }
+}

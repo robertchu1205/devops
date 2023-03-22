@@ -1,0 +1,4 @@
+resource "aws_key_pair" "alicloud-algo-jump" {
+  key_name   = "alicloud-algo-jump_aqumon-user"
+  public_key = "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQC8ttpnW5zxaEttuCz0xw34JMhTFXq4yEgAMCrI+9SX7DsLFkj3nEq2Y67YpaLs9kuXuF8yM1AbeNKkTI7lonwsBjii1N0jlNC79ifhvxyjnlckbwQ1vmQqcrNnARR6xjVx9uxUir5oWBhz+7K3v0hlQffL+MXMh7j7wKbEJ5UBPkXqTKGwr2YoAoe9Zg+SnHgpwA7KahHmhLt9ZactHGXOkQxaE51BLN02leuZRpadGl+Cg6polpTFe1+UqeYFVHg5B+9BvakLt7ySAX4A+JMzeyUkRCT9goW/aPgEVKyMtgI8T+u2IHVGBNtRkcRwYQWsyqR22DA8gOzecvfIPerx aqumon@iZj6ciki6ajg8sf9iuhs4vZ"
+}
