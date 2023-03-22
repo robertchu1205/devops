@@ -1,0 +1,28 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: oms-prd-nginx-ingress-nlb
+  namespace: ingress-nginx
+  annotations:
+    service.beta.kubernetes.io/aws-load-balancer-additional-resource-tags: >-
+      map-migrated-cnmap=d-server-0067yxz39nth5o,map-migrated-project-id=GCR-Migration-2021-398,team=algo
+    service.beta.kubernetes.io/aws-load-balancer-healthcheck-path: /healthz
+    service.beta.kubernetes.io/aws-load-balancer-name: algo-oms-prd-nginx-ingress-nlb
+    service.beta.kubernetes.io/aws-load-balancer-nlb-target-type: ip
+    service.beta.kubernetes.io/aws-load-balancer-subnets: subnet-0da14af7f50989dc1, subnet-063c43dc372b616d0
+spec:
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 80
+  selector:
+    app.kubernetes.io/name: ingress-nginx
+  type: LoadBalancer
+  sessionAffinity: None
+  externalTrafficPolicy: Cluster
+  ipFamilies:
+    - IPv4
+  ipFamilyPolicy: SingleStack
+  allocateLoadBalancerNodePorts: true
+  loadBalancerClass: service.k8s.aws/nlb
+  internalTrafficPolicy: Cluster

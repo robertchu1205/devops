@@ -1,0 +1,118 @@
+image:
+  repository: timescale/timescaledb-ha
+  tag: pg12.7-ts2.4-latest
+resources:
+  limits:
+    cpu: 10
+    memory: 26Gi
+  requests:
+    cpu: 5
+    memory: 13Gi
+sharedMemory:
+  useMount: true
+loadBalancer:
+  enabled: false
+  # annotations:
+  #   service.beta.kubernetes.io/alicloud-loadbalancer-address-type: intranet
+  #   service.beta.kubernetes.io/alicloud-loadbalancer-force-override-listeners: 'true'
+  #   service.beta.kubernetes.io/alicloud-loadbalancer-id: lb-3nslhvzs6dfzmn71z71y9
+replicaCount: 2
+persistentVolumes:
+  data:
+    size: 1Ti
+    storageClass: alicloud-disk-efficiency
+  wal:
+    size: 500Gi
+    storageClass: alicloud-disk-efficiency
+  tablespaces:
+    xmlspace:
+      size: 1Ti
+      storageClass: alicloud-disk-efficiency
+patroni:
+  # postgresql:
+  #   pg_hba:
+  #   - host      all             postgres        all                   md5
+  #   - local     all             all                                   trust
+  #   # IPv4 local connections:
+  #   - host      all             all             127.0.0.1/32          trust
+  #   - host      all             all             all                   trust
+  #   # IPv6 local connections:
+  #   - host      all             all             ::1/128               md5
+  #   # - hostnossl all,replication all             all                reject
+  #   - hostssl   all             all             127.0.0.1/32          md5
+  #   - hostssl   all             all             ::1/128               md5
+  #   - hostssl   replication     standby         all                   md5
+  #   - hostssl   all             all             all                   md5
+  bootstrap:
+    dcs:
+      postgresql:
+        parameters:
+          max_wal_size: 400GB  # 80% of the Volume Size
+          max_replication_slots: 4000
+          max_connections: 256
+          wal_keep_segments: 2000
+          log_min_duration_statement: 100 # -1
+          work_mem: 64MB
+          timescaledb.restoring: on
+          log_timezone: Asia/Shanghai
+          log_min_messages: info
+          log_min_error_statement: info
+          log_lock_waits: off
+          log_disconnections: off
+          log_connections: on
+          log_duration: on
+          log_checkpoints: off
+          log_autovacuum_min_duration: -1
+#           ssl: off # replication would fail
+#           shared_buffers: 4GB # 25% of available ec2 instance memory
+#           logging_collector: on # all of the traffic coming to PostgreSQL system tables
+#           temp_file_limit: '-1'
+#           synchronous_commit: remote_apply # remote_apply will throttle the replica's, see also the comment at patroni.bootstrap.synchronous_mode
+#           wal_buffers: -1
+#           shared_preload_libraries: 'timescaledb'
+#           tcp_keepalives_interval: 75
+#           tcp_keepalives_idle: 7200
+#           autovacuum_analyze_scale_factor: 0.1
+#           autovacuum_vacuum_scale_factor: 0.2
+#           autovacuum_vacuum_cost_limit: -1
+#           autovacuum_naptime: 10
+#           unix_socket_permissions: 0777
+#           archive_timeout: 0
+prometheus:
+  enabled: true
+  image:
+    tag: latest
+backup:
+  enabled: true
+  jobs:
+    - name: full-weekly
+      type: full
+      schedule: "0 22 * * 6"
+    - name: incremental-daily
+      type: incr
+      schedule: "30 4 * * *"
+timescaledbTune:
+  enabled: true
+  args:
+    max-conns: 256
+    cpus: 9
+    memory: 24GB
+bootstrapFromBackup:
+  enabled: True
+  repo1-path: /timescaledb/dm
+  # secretName: pgbackrest-bootstrap # optional
+tolerations:
+- key: cpu
+  operator: Equal
+  value: high
+  effect: NoSchedule
+affinity:
+  nodeAffinity:
+    preferredDuringSchedulingIgnoredDuringExecution:
+      - weight: 70
+        preference:
+          matchExpressions:
+            - key: cpu
+              operator: In
+              values:
+                - high

@@ -1,0 +1,80 @@
+#https://github.com/bitnami/charts/blob/master/bitnami/mysql/values.yaml
+# performance_schema_session_connect_attrs_size=0
+# max_user_connections=1200
+image:
+  tag: 5.7
+auth:
+  rootPassword: "Aqumon2050@"
+  username: "aqmalgo_db"
+  password: "Aqumon2050@"
+primary:
+  configuration: |-
+    [mysqld]
+    interactive_timeout=28800
+    wait_timeout=28800
+    default_authentication_plugin=mysql_native_password
+    skip-name-resolve
+    explicit_defaults_for_timestamp
+    basedir=/opt/bitnami/mysql
+    plugin_dir=/opt/bitnami/mysql/lib/plugin
+    port=3306
+    socket=/opt/bitnami/mysql/tmp/mysql.sock
+    datadir=/bitnami/mysql/data
+    tmpdir=/opt/bitnami/mysql/tmp
+    max_allowed_packet=16M
+    bind-address=0.0.0.0
+    pid-file=/opt/bitnami/mysql/tmp/mysqld.pid
+    log-error=/opt/bitnami/mysql/logs/mysqld.log
+    character-set-server=UTF8
+    collation-server=utf8_general_ci
+    slow_query_log=0
+    slow_query_log_file=/opt/bitnami/mysql/logs/mysqld.log
+    long_query_time=10.0
+    [client]
+    port=3306
+    socket=/opt/bitnami/mysql/tmp/mysql.sock
+    default-character-set=UTF8
+    plugin_dir=/opt/bitnami/mysql/lib/plugin
+    [manager]
+    port=3306
+    socket=/opt/bitnami/mysql/tmp/mysql.sock
+    pid-file=/opt/bitnami/mysql/tmp/mysqld.pid
+  extraFlags: "--max_connections=20480"
+  persistence:
+    storageClass: "alicloud-nas"
+    size: 16Gi
+  extraEnvVars:
+  - name: TZ
+    value: "Asia/Hong_Kong"
+  resources:
+    requests:
+      memory: 1Gi
+      cpu: 300m
+    limits:
+      memory: 4Gi
+      cpu: 2
+  tolerations:
+  - key: memory
+    operator: Equal
+    value: high
+    effect: NoSchedule
+  affinity:
+    nodeAffinity:
+      preferredDuringSchedulingIgnoredDuringExecution:
+        - weight: 100
+          preference:
+            matchExpressions:
+              - key: memory
+                operator: In
+                values:
+                  - high
+  service:
+    type: LoadBalancer
+    port: 30307
+    annotations: 
+      service.beta.kubernetes.io/alicloud-loadbalancer-address-type: intranet
+      service.beta.kubernetes.io/alicloud-loadbalancer-force-override-listeners: 'true'
+      service.beta.kubernetes.io/alicloud-loadbalancer-id: lb-3nslhvzs6dfzmn71z71y9
+    # nodePort: 30307
+metrics:
+  enabled: true

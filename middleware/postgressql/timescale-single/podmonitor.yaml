@@ -1,0 +1,47 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PodMonitor
+metadata:
+  labels:
+    cluster-name: dm
+    app: dm-timescaledb
+    role: replica
+    monitoring: prometheus
+  name: dm-timescaledb-ha-replica
+  namespace: monitoring
+spec:
+  jobLabel: metadata.name
+  namespaceSelector:
+    matchNames:
+    - timescaledb
+  podMetricsEndpoints:
+  - interval: 30s
+    port: pg-exporter
+  selector:
+    matchLabels:
+      cluster-name: dm
+      app: dm-timescaledb
+      role: replica
+---
+apiVersion: monitoring.coreos.com/v1
+kind: PodMonitor
+metadata:
+  labels:
+    cluster-name: dm
+    app: dm-timescaledb
+    role: master
+    monitoring: prometheus
+  name: dm-timescaledb-ha-master
+  namespace: monitoring
+spec:
+  jobLabel: metadata.name
+  namespaceSelector:
+    matchNames:
+    - timescaledb
+  podMetricsEndpoints:
+  - interval: 30s
+    port: pg-exporter
+  selector:
+    matchLabels:
+      cluster-name: dm
+      app: dm-timescaledb
+      role: master

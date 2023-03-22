@@ -1,0 +1,20 @@
+bases:
+- ./../../base
+
+resources:
+- secret.yaml
+- ingress.yaml
+
+# patchesStrategicMerge:
+# - service.yaml
+
+# namePrefix: toc-dev-
+
+commonLabels:
+  env: toc-dev
+
+namespace: xxl-job
+
+replicas:
+- name: xxl-job-admin
+  count: 1

@@ -1,0 +1,8 @@
+namespace: dm-stg
+
+commonLabels:
+  cluster-name: stg
+
+resources:
+- dm-master.yaml
+- dm-slave.yaml

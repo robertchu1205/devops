@@ -1,13 +1,16 @@
 resources:
 - job.yaml
 
-namespace: dm-dev
+namespace: timescaledb
+
+namePrefix: restore-job-
 
 configMapGenerator:
-- name: restore-pgscripts
+- name: pgscripts
   files:
-  - ./scripts/prd-pg_restore.sh
-  - ./scripts/prd-pg_roles.sh
+  - ./scripts/pro-pg-backup.sh
+  - ./scripts/pro-pg-xml-backup.sh
+  - ./scripts/pro-pg-xml-restore.sh
 
 generatorOptions:
   disableNameSuffixHash: true

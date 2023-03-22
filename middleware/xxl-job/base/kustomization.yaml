@@ -1,0 +1,12 @@
+resources:
+- secret.yaml
+- deploy.yaml
+- service.yaml
+
+commonLabels:
+  app: xxl-job-admin
+
+images: 
+- name: xxl-job-admin
+  newTag: 2.3.0
+  newName: xuxueli/xxl-job-admin

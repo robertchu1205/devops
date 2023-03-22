@@ -1,7 +1,7 @@
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: pg-restore-from-prod
+  name: pg-restore
 spec:
   template:
     spec:
@@ -11,31 +11,23 @@ spec:
         command: 
         - sh 
         - -c 
-        - bash -x /pgscripts/prd-pg_restore.sh && bash -x /pgscripts/prd-pg_roles.sh
+        - sleep 1m && bash -x /pgscripts/pro-pg-xml-restore.sh;
         env:
         - name: PGPASSWORD
           value: docker
         - name: PGUSER
           value: postgres
-        - name: PGHOST
-          value: dm-dev-timescaledb-only-one-lb.dm-dev.svc.cluster.local
-        - name: PGPORT
-          value: "5432"
-        - name: ROOT_DIR
-          value: /mnt/pg_backup/logical
-        - name: DM_TARGET_DB_NAME
-          value: dm_dev
         volumeMounts:
-        - name: aws-efs
+        - name: hk-aliyun-nas-pvc
           mountPath: /mnt
-        - name: restore-pgscripts
+        - name: pgscripts
           mountPath: /pgscripts
       restartPolicy: Never
       volumes:
-      - name: aws-efs
+      - name: hk-aliyun-nas-pvc
         persistentVolumeClaim:
-          claimName: aws-efs
-      - name: restore-pgscripts
+          claimName: hk-aliyun-nas-pvc
+      - name: pgscripts
         configMap:
-          name: restore-pgscripts
+          name: pgscripts
   backoffLimit: 0

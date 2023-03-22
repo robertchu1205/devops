@@ -1,0 +1,13 @@
+apiVersion: configuration.konghq.com/v1beta1
+kind: TCPIngress
+metadata:
+  name: prod-pg-master
+  namespace: timescaledb
+  annotations:
+    kubernetes.io/ingress.class: kong
+spec:
+  rules:
+  - port: 9000
+    backend:
+      serviceName: dm
+      servicePort: 5432

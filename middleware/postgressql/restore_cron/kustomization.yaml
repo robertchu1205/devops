@@ -1,12 +1,12 @@
 resources:
 - cronjob.yaml
 
-namespace: dm-dev
+namespace: timescaledb
 
 configMapGenerator:
 - name: pgscripts
   files:
-  - ./scripts/prd-pgdata-restore.sh
-
-generatorOptions:
-  disableNameSuffixHash: true
+  - ./scripts/prd-pgdata-backup.sh
+  - ./scripts/prd-xml-pgdata-backup.sh
+  options:
+    disableNameSuffixHash: true

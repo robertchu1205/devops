@@ -1,0 +1,24 @@
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  labels:
+    cluster-name: dm
+    app: dm-timescaledb
+    role: master
+    monitoring: prometheus
+  name: dm-timescaledb-ha-master
+  namespace: monitoring
+spec:
+  endpoints:
+  - interval: 30s
+    port: pg-exporter
+    path: /metrics
+  jobLabel: metadata.name
+  namespaceSelector:
+    matchNames:
+    - timescaledb
+  selector:
+    matchLabels:
+      cluster-name: dm
+      app: dm-timescaledb
+      role: master

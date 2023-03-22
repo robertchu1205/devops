@@ -1,0 +1,34 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: xxl-job-admin
+spec:
+  replicas: 1 
+  template:
+    spec:
+      imagePullSecrets:
+      - name: algo-dockerhub-regcred
+      containers:
+        - name: xxl-job-admin
+          image: xxl-job-admin
+          ports:
+          - name: http
+            containerPort: 8080
+          # command:
+          # - sh
+          # - -c 
+          # - java -jar $JAVA_OPTS /app.jar $PARAMS
+          env:
+          - name: TZ
+            value: PRC
+          - name: PARAMS
+            value: --spring.datasource.url=jdbc:mysql://192.168.8.187:3307/xxl_job_dev?characterEncoding=utf-8&useSSL=false&rewriteBatchedStatements=true --spring.datasource.username=aqmalgo_db --spring.datasource.password=Aqumon2050@ --spring.datasource.driver-class-name=com.mysql.cj.jdbc.Driver
+          - name: JAVA_OPTS
+            value: -Xmx512m
+          resources:
+            requests:
+              cpu: 10m
+              memory: 128Mi
+            limits:
+              cpu: 32m
+              memory: 1024Mi

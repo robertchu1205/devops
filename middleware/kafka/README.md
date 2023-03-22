@@ -1,3 +1,6 @@
+how to helm install:
+```helm install kafka bitnami/kafka   --set zookeeper.enabled=false   --set replicaCount=3   --set externalZookeeper.servers=zookeeper.zookeeper.svc.cluster.local  -n kafka```
+
 - https://github.com/Yolean/kubernetes-kafka/tree/v6.0.4
 - How to test deployed kafka
   1. run test client

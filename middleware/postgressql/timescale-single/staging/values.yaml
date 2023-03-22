@@ -1,0 +1,77 @@
+image:
+  repository: timescale/timescaledb-ha
+  tag: pg12.7-ts2.4-latest
+resources:
+  limits:
+    cpu: 750m
+    memory: 2Gi
+  requests:
+    cpu: 50m
+    memory: 200Mi
+sharedMemory:
+  useMount: true
+loadBalancer:
+  enabled: false
+  # annotations:
+  #   service.beta.kubernetes.io/alicloud-loadbalancer-address-type: intranet
+  #   service.beta.kubernetes.io/alicloud-loadbalancer-force-override-listeners: 'true'
+  #   service.beta.kubernetes.io/alicloud-loadbalancer-id: lb-3nslhvzs6dfzmn71z71y9
+replicaCount: 2
+persistentVolumes:
+  data:
+    size: 130Gi
+    storageClass: alicloud-disk-efficiency
+  wal:
+    size: 20Gi
+    storageClass: alicloud-disk-efficiency
+  tablespaces:
+    xmlspace:
+      size: 270Gi
+      storageClass: alicloud-disk-efficiency
+patroni:
+  bootstrap:
+    dcs:
+      postgresql:
+        parameters:
+          max_replication_slots: 4000
+          max_connections: 256
+          log_temp_files: 0
+          log_autovacuum_min_duration: 9s
+          log_destination: stderr,csvlog
+          log_checkpoints: on
+          log_connections: on
+          log_disconnections: on
+          log_duration: on
+          log_lock_waits: on
+          log_min_duration_statement: 2222ms
+          log_rotation_age: 2min
+          log_rotation_size: 32MB
+          logging_collector: on
+          log_min_error_statement: info
+          log_min_messages: info
+          log_timezone: Asia/Shanghai
+          max_wal_size: 16GB
+          timescaledb.restoring: on
+          work_mem: 64MB
+# patroni:
+#   postgresql:
+#     pg_hba:
+#     - local      all            postgres        all                   peer
+#     - local      all            all                                   md5
+#     - hostnossl all,replication all                all                reject
+#     - hostssl   all             all                127.0.0.1/32       md5
+#     - hostssl   all             all                ::1/128            md5
+#     - hostssl   replication     standby            all                md5
+#     - hostssl   all             all                all                md5
+#     - host    all             all              0.0.0.0/0                       md5
+#     - host    all             all              ::/0                            md5
+prometheus:
+  enabled: true
+  image:
+    tag: latest
+bootstrapFromBackup:
+  enabled: true
+  repo1-path: /timescaledb/dm
+  # secretName: pgbackrest-bootstrap # optional
+timescaledbTune:
+  enabled: true
