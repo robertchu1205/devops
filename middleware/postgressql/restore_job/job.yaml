@@ -1,0 +1,41 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: pg-restore-from-prod
+spec:
+  template:
+    spec:
+      containers:
+      - name: pg-restore
+        image: postgres:12.7
+        command: 
+        - sh 
+        - -c 
+        - bash -x /pgscripts/prd-pg_restore.sh && bash -x /pgscripts/prd-pg_roles.sh
+        env:
+        - name: PGPASSWORD
+          value: docker
+        - name: PGUSER
+          value: postgres
+        - name: PGHOST
+          value: dm-dev-timescaledb-only-one-lb.dm-dev.svc.cluster.local
+        - name: PGPORT
+          value: "5432"
+        - name: ROOT_DIR
+          value: /mnt/pg_backup/logical
+        - name: DM_TARGET_DB_NAME
+          value: dm_dev
+        volumeMounts:
+        - name: aws-efs
+          mountPath: /mnt
+        - name: restore-pgscripts
+          mountPath: /pgscripts
+      restartPolicy: Never
+      volumes:
+      - name: aws-efs
+        persistentVolumeClaim:
+          claimName: aws-efs
+      - name: restore-pgscripts
+        configMap:
+          name: restore-pgscripts
+  backoffLimit: 0

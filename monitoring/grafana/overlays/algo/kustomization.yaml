@@ -1,0 +1,30 @@
+resources:
+- ./../../base
+- ./service.yaml
+
+namespace: monitoring
+
+images:
+- name: grafana/grafana
+  newTag: 8.5.10-ubuntu
+
+namePrefix: algo-
+
+commonLabels:
+  monitoring: whole-algo
+
+configMapGenerator:
+- name: grafana-conf-files
+  files:
+  - ./configmap/dashboards.yaml
+  - ./configmap/datasources.yaml
+  options:
+    disableNameSuffixHash: true
+
+secretGenerator:
+- name: secret-grafana-env
+  envs:
+  - ./configmap/secret-env.conf
+
+patchesStrategicMerge:
+- ./app-env.yaml

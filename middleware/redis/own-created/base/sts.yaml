@@ -1,0 +1,104 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: custom-redis-standalone
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: custom-redis-standalone
+  template:
+    metadata:
+      labels:
+        app: custom-redis-standalone
+    spec:
+      # securityContext:
+      #   sysctls:
+      #   - name: net.core.somaxconn
+      #     value: "65535"
+      #   - name: vm.overcommit_memory
+      #     value: "1"
+      volumes:
+      - name: ali
+        persistentVolumeClaim:
+          claimName: alinas-redis
+      - name: sys
+        hostPath:
+          path: /sys
+      initContainers:
+      - name: sysctl-buddy
+        image: busybox
+        securityContext:
+          privileged: true
+          runAsUser: 0
+        volumeMounts:
+        - name: sys
+          mountPath: /sys
+          readOnly: false
+        command: 
+        - "/bin/sh"
+        - "-c"
+        - "echo 65535 > /proc/sys/net/core/somaxconn && echo never > /sys/kernel/mm/transparent_hugepage/enabled && echo 1 > /proc/sys/vm/overcommit_memory && echo 1 > /proc/sys/vm/swappiness && sysctl -w net.core.somaxconn=65535 vm.overcommit_memory=1 vm.swappiness=1 && sleep 1"
+        resources:
+          requests:
+            cpu: 1m
+            memory: 1Mi
+      containers:
+      - name: redis
+        image: redis:6.2.6
+        # env:
+        # - name: LOGLEVEL
+        #   value: debug
+        ports:
+        - name: redis
+          containerPort: 6379
+        resources:
+          limits:
+            cpu: 1
+            memory: 1Gi
+          requests:
+            cpu: 200m
+            memory: 500Mi
+        livenessProbe:
+          tcpSocket:
+            port: 6379
+          initialDelaySeconds: 180
+          timeoutSeconds: 1
+          periodSeconds: 10
+          successThreshold: 1
+          failureThreshold: 3
+        readinessProbe:
+          tcpSocket:
+            port: 6379
+          initialDelaySeconds: 5
+          timeoutSeconds: 1
+          periodSeconds: 10
+          successThreshold: 1
+          failureThreshold: 3
+        volumeMounts:
+        - name: ali
+          mountPath: /mnt
+        - name: data
+          mountPath: /data
+        imagePullPolicy: IfNotPresent
+      - name: exporter
+        image: oliver006/redis_exporter
+        env:
+        - name: TZ
+          value: Asia/Shanghai
+        # - name: REDIS_ADDR
+        #   value: redis://172.31.74.192:16379
+        ports:
+        - name: exporter
+          containerPort: 9121
+          protocol: TCP
+  volumeClaimTemplates:
+  - metadata:
+      name: data
+    spec:
+      accessModes: [ "ReadWriteOnce" ]
+      storageClassName: "vsphere-csi-sc"
+      resources:
+        requests:
+          storage: 40Gi
+  serviceName: custom-redis-standalone

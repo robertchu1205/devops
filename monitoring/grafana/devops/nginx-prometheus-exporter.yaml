@@ -1,0 +1,48 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nginx-prometheus-exporter
+  namespace: monitoring
+  labels:
+    app: nginx-prometheus-exporter
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: nginx-prometheus-exporter
+  template:
+    metadata:
+      labels:
+        app: nginx-prometheus-exporter
+      annotations:
+        prometheus.io/scrape: 'true'
+        prometheus.io/port: '9113'
+    spec:
+      containers:
+      - name: nginx-exporter
+        image: nginx/nginx-prometheus-exporter:latest
+        args:
+        - -nginx.scrape-uri=http://172.31.86.16:10080/stub_status
+        ports:
+          - name: metrics
+            containerPort: 9113
+---
+apiVersion: monitoring.coreos.com/v1
+kind: PodMonitor
+metadata:
+  labels:
+    app: nginx-prometheus-exporter
+    monitoring: prometheus
+  name: algo-hk-webpub-nginx
+  namespace: monitoring
+spec:
+  jobLabel: algo-hk-webpub-nginx
+  namespaceSelector:
+    matchNames:
+    - monitoring
+  podMetricsEndpoints:
+  - interval: 30s
+    port: metrics
+  selector:
+    matchLabels:
+      app: nginx-prometheus-exporter

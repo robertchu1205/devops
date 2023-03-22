@@ -1,0 +1,22 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PodMonitor
+metadata:
+  labels:
+    app: timescaledb
+    service: dm-dev
+    role: master
+    monitoring: prometheus
+  name: dm-dev-timescaledb-only-one
+  namespace: monitoring
+spec:
+  jobLabel: metadata.name
+  namespaceSelector:
+    matchNames:
+    - dm-dev
+  podMetricsEndpoints:
+  - interval: 30s
+    port: pg-exporter
+  selector:
+    matchLabels:
+      app: timescaledb
+      service: dm-dev

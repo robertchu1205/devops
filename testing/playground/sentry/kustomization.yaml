@@ -1,0 +1,4 @@
+resources:
+- sentry.yaml
+
+namespace: sentry

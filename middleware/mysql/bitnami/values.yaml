@@ -1,0 +1,30 @@
+#https://github.com/bitnami/charts/blob/master/bitnami/mysql/values.yaml
+image:
+  tag: 8.0.28
+auth:
+  rootPassword: "Aqumon2050@"
+  username: "aqmalgo_db"
+  password: "Aqumon2050@"
+primary:
+  extraFlags: "--max_connections=5120"
+  persistence:
+    enabled: true
+  extraEnvVars:
+  - name: TZ
+    value: "Asia/Hong_Kong"
+  resources:
+    limits:
+      cpu: 0.5
+      memory: 2Gi
+  # service:
+  #   type: LoadBalancer
+  #   annotations: 
+  #     metallb.universe.tf/allow-shared-ip: key-to-share-192.168.11.246
+  #   loadBalancerIP: 192.168.11.246
+metrics:
+  enabled: true
+
+# Database returned an invalid value in QuerySet.dates()
+# https://stackoverflow.com/questions/21351251/database-returned-an-invalid-value-in-queryset-dates/21571350#21571350
+# mysql_tzinfo_to_sql /usr/share/zoneinfo | mysql -D mysql -u root -p 
+# mysql -u root -p -e "flush tables;" mysql 

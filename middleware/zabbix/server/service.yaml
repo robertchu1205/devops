@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: zabbix-server-mysql
+  labels:
+    app: zabbix
+spec:
+  type: ClusterIP
+  ports:
+  - name: listen
+    port: 10051
+  - name: agent
+    port: 10050
+  selector:
+    app: zabbix

@@ -1,0 +1,12 @@
+resources:
+- cronjob.yaml
+
+namespace: dm-dev
+
+configMapGenerator:
+- name: pgscripts
+  files:
+  - ./scripts/prd-pgdata-restore.sh
+
+generatorOptions:
+  disableNameSuffixHash: true

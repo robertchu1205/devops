@@ -1,0 +1,63 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: docker-registry
+spec:
+  serviceName: docker-registry
+  replicas: 1
+  selector:
+    matchLabels:
+      app: docker-registry-test
+  volumeClaimTemplates:
+  - metadata:
+      name: data
+    spec:
+      accessModes: [ "ReadWriteOnce" ]
+      resources:
+        requests:
+          storage: 120Gi
+  template:
+    metadata:
+      labels:
+        app: docker-registry-test
+    spec:
+      volumes:
+      - name: nas
+        persistentVolumeClaim:
+          claimName: docker-registry-aliyun-nas
+      # - name: data-docker-registry-manual-created
+      #   persistentVolumeClaim:
+      #     claimName: data-docker-registry-manual-created
+      - name: docker-registry-conf
+        configMap:
+          name: docker-registry-conf
+      - name: docker-registry-certs
+        secret:
+          secretName: docker-registry-certs
+      containers:
+      - name: docker-registry-test
+        image: registry:2
+        volumeMounts:
+        - name: data
+          mountPath: /var/lib/registry
+        # - name: data-docker-registry-manual-created
+        #   mountPath: /var/lib/registry
+        - name: nas
+          mountPath: /nas
+          # mountPath: /var/lib
+          # subPath: docker-registry/data
+        - mountPath: /certs
+          name: docker-registry-certs
+        - mountPath: /auth/htpasswd
+          name: docker-registry-conf
+          subPath: htpasswd
+        - mountPath: /etc/docker/registry/config.yml
+          name: docker-registry-conf
+          subPath: config.yml
+        resources:
+          requests:
+            memory: "50Mi"
+            cpu: "5m"
+        ports:
+        - name: docker-registry
+          containerPort: 5000

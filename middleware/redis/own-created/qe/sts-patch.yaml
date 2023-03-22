@@ -1,0 +1,53 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: custom-redis-standalone
+spec:
+  template:
+    spec:
+      volumes:
+      - name: conf
+        configMap:
+          name: redis-config
+          # defaultMode: 644
+      # - name: hostdata
+      #   hostPath:
+      #     path: /data
+      # initContainers:
+      # - name: volume-mount-hack
+      #   image: busybox
+      #   command: ["sh", "-c", "chmod -R 777 /data"]
+      #   volumeMounts:
+      #   - name: hostdata
+      #     mountPath: /data
+      containers:
+      - name: redis
+        args:
+        - /redis.conf
+        volumeMounts:
+        # - name: hostdata
+        #   mountPath: /hostdata
+        - name: conf
+          subPath: redis.conf
+          mountPath: /redis.conf
+        resources:
+          requests:
+            memory: 1Gi
+            cpu: 0.02
+          limits:
+            memory: 2Gi
+            cpu: 0.5
+      affinity:
+        nodeAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              preference:
+                matchExpressions:
+                  - key: service-only
+                    operator: In
+                    values:
+                      - qe
+      tolerations:
+        - key: service-only
+          operator: Exists
+          effect: NoSchedule

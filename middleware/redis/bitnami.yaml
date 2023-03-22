@@ -1,0 +1,14 @@
+architecture: standalone
+auth:
+  enabled: false
+master:
+  resources: 
+    requests:
+      cpu: 0.05
+      memory: 3Gi
+  persistence:
+    size: 20Gi
+metrics: 
+  enabled: true
+sysctlImage:
+  enabled: true

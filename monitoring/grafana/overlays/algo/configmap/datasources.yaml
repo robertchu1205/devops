@@ -1,0 +1,224 @@
+datasources:
+# prometheus
+- name: c03-middleware
+  type: prometheus
+  access: proxy
+  url: http://c03-middleware.algo-intra.aqumon.com:9090
+  jsonData:
+    manageAlerts: false
+  editable: true
+- name: c04-datamaster
+  type: prometheus
+  access: proxy
+  url: http://192.168.11.244:9090
+  jsonData:
+    manageAlerts: false
+  editable: true
+- name: c05-algo-development
+  type: prometheus
+  access: proxy
+  url: http://192.168.11.254:9090
+  jsonData:
+    manageAlerts: false
+  editable: true
+- name: hk-algo-prd-eks-02-cluster
+  type: prometheus
+  access: proxy
+  url: http://hk-algo-prd-eks-02-prometheus-f3fad63e37f13ae0.elb.ap-east-1.amazonaws.com:9090/prometheus
+  jsonData:
+    manageAlerts: false
+  editable: true
+- name: hk-algo-stg-eks-02-cluster
+  type: prometheus
+  access: proxy
+  url: http://hk-algo-stg-eks-02-prometheus-c8c69aae696ad28f.elb.ap-east-1.amazonaws.com:9090
+  jsonData:
+    manageAlerts: false
+  editable: true
+- name: hk-algo-prd-eks-cluster
+  type: prometheus
+  access: proxy
+  url: http://hk-algo-prd-eks-prometheus-e002fde2f7bbd491.elb.ap-east-1.amazonaws.com:9090
+  jsonData:
+    manageAlerts: false
+  editable: true
+- name: hk-algo-stg-eks-cluster
+  type: prometheus
+  access: proxy
+  url: http://hk-algo-stg-eks-prometheus-820b599bad09009d.elb.ap-east-1.amazonaws.com:9090
+  jsonData:
+    manageAlerts: false
+  editable: true
+- name: hk-algo-P-k8s-cluster-01
+  type: prometheus
+  access: proxy
+  url: http://cn-hongkong.arms.aliyuncs.com:9090/api/v1/prometheus/3f7c315bab4abfe4ed632579b8261c/1075072801473341/c204dc5388c99456f8c442ccd65d859a4/cn-hongkong
+  jsonData:
+    manageAlerts: false
+  editable: true
+- name: sh-algo-PREPRD-quote-engine
+  type: prometheus
+  access: proxy
+  url: https://cn-shanghai.arms.aliyuncs.com:9443/api/v1/prometheus/3f7c315bab4abfe4ed632579b8261c/1075072801473341/c36a08c93c03540a0bfda1baf766096c5/cn-shanghai
+  jsonData:
+    manageAlerts: true
+  editable: true
+- name: sh-algo-P-quote-engine
+  type: prometheus
+  access: proxy
+  url: https://cn-shanghai.arms.aliyuncs.com:9443/api/v1/prometheus/3f7c315bab4abfe4ed632579b8261c/1075072801473341/c9494911edffa49199677e46bf58ef6b0/cn-shanghai
+  jsonData:
+    manageAlerts: true
+  editable: true
+- name: quote-engine-prometheus
+  type: prometheus
+  access: proxy
+  url: http://192.168.9.202:9800
+  jsonData:
+    manageAlerts: false
+  editable: true
+- name: sh-k3s-10.1.2.21-prometheus
+  type: prometheus
+  access: proxy
+  url: http://10.1.2.21/prometheus
+  jsonData:
+    manageAlerts: false
+  editable: true
+- name: zxqh-colo-k3s-prometheus
+  type: prometheus
+  access: proxy
+  url: http://10.1.2.8:39090
+  jsonData:
+    manageAlerts: false
+  editable: true
+# postgres
+- name: DM-PRD-PG
+  type: postgres
+  url: hk-algo-prd-eks-timescaledb-b1b5fa9b6bc2570e.elb.ap-east-1.amazonaws.com:5432
+  database: dm_test
+  user: grafana_readonly
+  secureJsonData:
+    password: grafana_readonly
+    basicAuthPassword: grafana_readonly
+  jsonData:
+    tlsSkipVerify: true
+    sslmode: 'require'
+    timescaledb: true
+    postgresVersion: '12'
+  editable: true
+- name: DM-STG-PG
+  type: postgres
+  url: hk-algo-stg-timescaledb-33d7093c50c7c86b.elb.ap-east-1.amazonaws.com:5432
+  database: dm_test
+  user: grafana_readonly
+  secureJsonData:
+    password: grafana_readonly
+    basicAuthPassword: grafana_readonly
+  jsonData:
+    tlsSkipVerify: true
+    sslmode: 'require'
+    timescaledb: true
+    postgresVersion: '12'
+  editable: true
+# mysql
+- name: QE-DEV-MYSQL
+  type: mysql
+  url: 192.168.8.187:3307
+  database: kowloon
+  user: aqmalgo_db
+  password: aqmalgo_db
+  secureJsonData:
+    password: aqmalgo_db
+  editable: true
+- name: QE-PREPRD-MYSQL
+  type: mysql
+  url: hk-algo-d-rds-mysql-proxy.proxy-cjqliutl3tcl.ap-east-1.rds.amazonaws.com:3306
+  database: kowloon
+  user: aqmalgo_db
+  password: aqmalgo_db
+  secureJsonData:
+    password: aqmalgo_db
+  editable: true
+- name: QE-PRD-MYSQL
+  type: mysql
+  url: hk-algo-p-rds-mysql-proxy.proxy-cjqliutl3tcl.ap-east-1.rds.amazonaws.com:3306
+  database: kowloon
+  user: aqmalgo_db
+  password: aqmalgo_db
+  secureJsonData:
+    password: aqmalgo_db
+  editable: true
+- name: Trading-toc-aws-staging-MySQL
+  type: mysql
+  url: hk-algo-d-rds-02-mysql-proxy.proxy-cjqliutl3tcl.ap-east-1.rds.amazonaws.com:3306
+  database: my2
+  user: algo_rdonly
+  password: algo_rdonly
+  secureJsonData:
+    password: algo_rdonly
+  editable: true
+- name: Trading-toc-aws-staging-MySQL
+  type: mysql
+  url: hk-algo-p-rds-02-mysql-proxy.proxy-cjqliutl3tcl.ap-east-1.rds.amazonaws.com:3306
+  database: my2
+  user: algo_rdonly
+  password: algo_rdonly
+  secureJsonData:
+    password: algo_rdonly
+  editable: true
+- name: Trading-LIVE-MySQL
+  type: mysql
+  url: rm-3ns243r1s77c437jy.mysql.rds.aliyuncs.com:3306
+  database: my2
+  user: algo_rdonly
+  password: algo_rdonly
+  secureJsonData:
+    password: algo_rdonly
+  editable: true
+# redis
+- name: DM-PRD-REDIS
+  type: redis-datasource
+  access: proxy
+  # isDefault: true
+  url: redis://hk-algo-p-redis-standalone.ccvhtg.ng.0001.ape1.cache.amazonaws.com:6379
+  # jsonData:
+  #   poolSize: 5
+  #   timeout: 10
+  #   pingInterval: 0
+  #   pipelineWindow: 0
+  editable: true
+- name: DM-STG-REDIS
+  type: redis-datasource
+  access: proxy
+  url: redis://hk-algo-d-redis-standalone.ccvhtg.ng.0001.ape1.cache.amazonaws.com:6379
+  editable: true
+- name: DM-TEST-REDIS
+  type: redis-datasource
+  access: proxy
+  url: redis://c03-middleware.algo-intra.aqumon.com:16380
+  editable: true
+- name: DMS-TEST-REDIS
+  type: redis-datasource
+  access: proxy
+  url: redis://c03-middleware.algo-intra.aqumon.com:31691
+  editable: true
+- name: QE-DEV-REDIS
+  type: redis-datasource
+  access: proxy
+  url: redis://c03-middleware.algo-intra.aqumon.com:32099
+  editable: true
+- name: QE-PREPRD-REDIS
+  type: redis-datasource
+  access: proxy
+  url: redis://172.18.4.121:6379
+  editable: true
+- name: Trading-AWS-PRD-REDIS
+  type: redis-datasource
+  access: proxy
+  url: redis://hk-algo-p-oms-redis-standalone.ccvhtg.ng.0001.ape1.cache.amazonaws.com:6379
+  editable: true
+- name: Trading-Aliyun-PRD-REDIS
+  type: redis-datasource
+  access: proxy
+  url: redis://r-3nsskl8nrniv76pgeh.redis.rds.aliyuncs.com:6379
+  editable: true

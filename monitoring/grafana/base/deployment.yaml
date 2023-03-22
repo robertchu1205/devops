@@ -1,0 +1,62 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: grafana
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: grafana
+  template:
+    metadata:
+      labels:
+        app: grafana
+    spec:
+      containers:
+      - env: 
+        - name: GF_SNAPSHOTS_EXTERNAL_ENABLED
+          value: "true"
+        - name: GF_AUTH_ANONYMOUS_ENABLED
+          value: "true"
+        - name: GF_AUTH_ANONYMOUS_ORG_NAME
+          value: "Main Org."
+        - name: GF_AUTH_ANONYMOUS_ORG_ROLE
+          value: "Viewer"
+        image: grafana/grafana
+        imagePullPolicy: IfNotPresent
+        name: grafana
+        ports:
+        - containerPort: 3000
+          name: http
+        readinessProbe:
+          initialDelaySeconds: 60
+          httpGet:
+            path: /api/health
+            port: http
+        resources:
+          requests:
+            cpu: 40m
+            memory: 40Mi
+        volumeMounts:
+        - mountPath: /var/lib/grafana
+          name: grafana-storage
+          readOnly: false
+        - mountPath: /etc/grafana/provisioning/datasources/datasources.yaml
+          name: grafana-conf-files
+          subPath: datasources.yaml
+          readOnly: false
+        - mountPath: /etc/grafana/provisioning/dashboards/dashboards.yaml
+          name: grafana-conf-files
+          subPath: dashboards.yaml
+          readOnly: false
+      securityContext:
+        fsGroup: 65534
+        runAsNonRoot: true
+        runAsUser: 65534
+      volumes:
+      - name: grafana-storage
+        persistentVolumeClaim:
+          claimName: grafana-pvc
+      - name: grafana-conf-files
+        configMap:
+          name: grafana-conf-files

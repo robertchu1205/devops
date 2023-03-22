@@ -1,0 +1,71 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: pgadmin
+spec:
+  serviceName: pgadmin
+  podManagementPolicy: Parallel
+  replicas: 1
+  updateStrategy:
+    type: RollingUpdate
+  selector:
+    matchLabels:
+      app: pgadmin
+  template:
+    metadata:
+      labels:
+        app: pgadmin
+    spec:
+      terminationGracePeriodSeconds: 10
+      initContainers:
+      - name: volume-mount-hack
+        image: busybox
+        imagePullPolicy: IfNotPresent
+        command: ["sh", "-c", "chown -R 5050:5050 /var/lib/pgadmin"]
+        volumeMounts:
+          - name: pgadmin-data
+            mountPath: /var/lib/pgadmin
+      containers:
+      - name: pgadmin
+        image: dpage/pgadmin4:6.2
+        imagePullPolicy: IfNotPresent
+        securityContext:
+          runAsUser: 5050
+          runAsGroup: 5050
+        env:
+        - name: PGADMIN_DEFAULT_EMAIL
+          value: pg@algo.aqumon.com
+        - name: PGADMIN_DEFAULT_PASSWORD
+          value: aqumon2050
+        - name: PGADMIN_LISTEN_PORT
+          value: '5050'
+        # - name: PGADMIN_DEFAULT_PASSWORD
+        #   valueFrom:
+        #     secretKeyRef:
+        #       name: pgadmin
+        #       key: pgadmin-password
+        ports:
+        - name: http
+          containerPort: 5050
+        volumeMounts:
+        - name: pgadmin-config
+          mountPath: /pgadmin4/servers.json
+          subPath: servers.json
+          readOnly: true
+        - name: pgadmin-config
+          mountPath: /pgadmin4/config_local.py
+          subPath: config_local.py
+        - name: pgadmin-data
+          mountPath: /var/lib/pgadmin
+      volumes:
+      - name: pgadmin-config
+        configMap:
+          name: pgadmin-config
+  volumeClaimTemplates:
+  - metadata:
+      name: pgadmin-data
+    spec:
+      accessModes: [ "ReadWriteOnce" ]
+      resources:
+        requests:
+          storage: 3Gi

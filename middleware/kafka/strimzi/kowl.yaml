@@ -1,0 +1,6 @@
+kowl:
+  # See reference config: https://github.com/cloudhut/kowl/blob/master/docs/config/kowl.yaml)
+  config:
+    kafka:
+      brokers:
+      - qe-toc-dev-kafka-extlb-bootstrap:9094

@@ -1,0 +1,4932 @@
+---
+# Source: sentry/charts/rabbitmq/templates/pdb.yaml
+apiVersion: policy/v1beta1
+kind: PodDisruptionBudget
+metadata:
+  name: algo-rabbitmq
+  namespace: sentry
+  labels:
+    app.kubernetes.io/name: rabbitmq
+    helm.sh/chart: rabbitmq-8.32.2
+    app.kubernetes.io/instance: algo
+    app.kubernetes.io/managed-by: Helm
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels: 
+      app.kubernetes.io/name: rabbitmq
+      app.kubernetes.io/instance: algo
+---
+# Source: sentry/charts/kafka/templates/serviceaccount.yaml
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: algo-kafka
+  namespace: sentry
+  labels:
+    app.kubernetes.io/name: kafka
+    helm.sh/chart: kafka-16.3.2
+    app.kubernetes.io/instance: algo
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/component: kafka
+  annotations:
+automountServiceAccountToken: true
+---
+# Source: sentry/charts/rabbitmq/templates/serviceaccount.yaml
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: algo-rabbitmq
+  namespace: sentry
+  labels:
+    app.kubernetes.io/name: rabbitmq
+    helm.sh/chart: rabbitmq-8.32.2
+    app.kubernetes.io/instance: algo
+    app.kubernetes.io/managed-by: Helm
+automountServiceAccountToken: true
+secrets:
+  - name: algo-rabbitmq
+---
+# Source: sentry/charts/redis/templates/serviceaccount.yaml
+apiVersion: v1
+kind: ServiceAccount
+automountServiceAccountToken: true
+metadata:
+  name: algo-sentry-redis
+  namespace: sentry
+  labels:
+    app.kubernetes.io/name: sentry-redis
+    helm.sh/chart: redis-16.12.1
+    app.kubernetes.io/instance: algo
+    app.kubernetes.io/managed-by: Helm
+---
+# Source: sentry/charts/postgresql/templates/secrets.yaml
+apiVersion: v1
+kind: Secret
+metadata:
+  name: algo-sentry-postgresql
+  labels:
+    app.kubernetes.io/name: sentry-postgresql
+    helm.sh/chart: postgresql-10.16.2
+    app.kubernetes.io/instance: algo
+    app.kubernetes.io/managed-by: Helm
+  namespace: sentry
+type: Opaque
+data:
+  postgresql-password: "QXF1bW9uQDIwNTA="
+---
+# Source: sentry/charts/rabbitmq/templates/secrets.yaml
+apiVersion: v1
+kind: Secret
+metadata:
+  name: algo-rabbitmq
+  namespace: sentry
+  labels:
+    app.kubernetes.io/name: rabbitmq
+    helm.sh/chart: rabbitmq-8.32.2
+    app.kubernetes.io/instance: algo
+    app.kubernetes.io/managed-by: Helm
+type: Opaque
+data:
+  rabbitmq-password: "Z3Vlc3Q="
+  rabbitmq-erlang-cookie: "cEhncHkzUTZhZFRza3pBVDZiTEhDRnFGVEY3bE14aEE="
+---
+# Source: sentry/charts/rabbitmq/templates/secrets.yaml
+apiVersion: v1
+kind: Secret
+metadata:
+  name: load-definition
+  namespace: sentry
+  labels:
+    app.kubernetes.io/name: rabbitmq
+    helm.sh/chart: rabbitmq-8.32.2
+    app.kubernetes.io/instance: algo
+    app.kubernetes.io/managed-by: Helm
+type: Opaque
+stringData:
+  load_definition.json: |
+    {
+      "users": [
+        {
+          "name": "guest",
+          "password": "guest",
+          "tags": "administrator"
+        }
+      ],
+      "permissions": [{
+        "user": "guest",
+        "vhost": "/",
+        "configure": ".*",
+        "write": ".*",
+        "read": ".*"
+      }],
+      "policies": [
+        {
+          "name": "ha-all",
+          "pattern": ".*",
+          "vhost": "/",
+          "definition": {
+            "ha-mode": "all",
+            "ha-sync-mode": "automatic",
+            "ha-sync-batch-size": 1
+          }
+        }
+      ],
+      "vhosts": [
+        {
+          "name": "/"
+        }
+      ]
+    }
+---
+# Source: sentry/templates/secret-snuba-env.yaml
+apiVersion: v1
+kind: Secret
+metadata:
+  name: algo-sentry-snuba-env
+  namespace: sentry
+  labels:
+    app: sentry
+    chart: "sentry-17.0.0"
+    release: "algo"
+    heritage: "Helm"
+type: Opaque
+data:
+  CLICKHOUSE_PORT: "OTAwMA=="
+  CLICKHOUSE_DATABASE: "ZGVmYXVsdA=="
+  CLICKHOUSE_USER: "ZGVmYXVsdA=="
+  CLICKHOUSE_PASSWORD: ""
+---
+# Source: sentry/charts/clickhouse/templates/configmap-config.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: algo-clickhouse-config
+  namespace: sentry
+  labels:
+    app.kubernetes.io/name: clickhouse-config
+    app.kubernetes.io/instance: algo-config
+    app.kubernetes.io/managed-by: Helm
+data:
+  config.xml: |-
+    <?xml version="1.0"?>
+    <yandex>
+        <path>/var/lib/clickhouse/</path>
+        <tmp_path>/var/lib/clickhouse/tmp/</tmp_path>
+        <user_files_path>/var/lib/clickhouse/user_files/</user_files_path>
+        <format_schema_path>/var/lib/clickhouse/format_schemas/</format_schema_path>
+
+        <include_from>/etc/clickhouse-server/metrica.d/metrica.xml</include_from>
+
+        <users_config>users.xml</users_config>
+
+        <display_name>algo-clickhouse</display_name>
+        <listen_host>0.0.0.0</listen_host>
+        <http_port>8123</http_port>
+        <tcp_port>9000</tcp_port>
+        <interserver_http_port>9009</interserver_http_port>
+        <max_connections>4096</max_connections>
+        <keep_alive_timeout>3</keep_alive_timeout>
+        <max_concurrent_queries>100</max_concurrent_queries>
+        <uncompressed_cache_size>8589934592</uncompressed_cache_size>
+        <mark_cache_size>5368709120</mark_cache_size>
+        <timezone>UTC</timezone>
+        <umask>022</umask>
+        <mlock_executable>false</mlock_executable>
+        <remote_servers incl="clickhouse_remote_servers" optional="true" />
+        <zookeeper incl="zookeeper-servers" optional="true" />
+        <macros incl="macros" optional="true" />
+        <builtin_dictionaries_reload_interval>3600</builtin_dictionaries_reload_interval>
+        <max_session_timeout>3600</max_session_timeout>
+        <default_session_timeout>60</default_session_timeout>
+        <disable_internal_dns_cache>1</disable_internal_dns_cache>
+
+        <query_log>
+            <database>system</database>
+            <table>query_log</table>
+            <partition_by>toYYYYMM(event_date)</partition_by>
+            <flush_interval_milliseconds>7500</flush_interval_milliseconds>
+        </query_log>
+
+        <query_thread_log>
+            <database>system</database>
+            <table>query_thread_log</table>
+            <partition_by>toYYYYMM(event_date)</partition_by>
+            <flush_interval_milliseconds>7500</flush_interval_milliseconds>
+        </query_thread_log>
+
+        <distributed_ddl>
+            <path>/clickhouse/task_queue/ddl</path>
+        </distributed_ddl>
+        <logger>
+            <level>trace</level>
+            <log>/var/log/clickhouse-server/clickhouse-server.log</log>
+            <errorlog>/var/log/clickhouse-server/clickhouse-server.err.log</errorlog>
+            <size>1000M</size>
+            <count>10</count>
+        </logger>
+    </yandex>
+---
+# Source: sentry/charts/clickhouse/templates/configmap-metrika.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: algo-clickhouse-metrica
+  namespace: sentry
+  labels:
+    app.kubernetes.io/name: clickhouse-metrica
+    app.kubernetes.io/instance: algo-metrica
+    app.kubernetes.io/managed-by: Helm
+data:
+  metrica.xml: |-
+    <?xml version="1.0"?>
+    <yandex>
+        <zookeeper-servers>
+            <node index="clickhouse">
+                <host>algo-zookeeper-clickhouse</host>
+                <port>2181</port>
+            </node>
+            <session_timeout_ms>30000</session_timeout_ms>
+            <operation_timeout_ms>10000</operation_timeout_ms>
+            <root></root>
+            <identity></identity>
+        </zookeeper-servers>
+        <clickhouse_remote_servers>
+            <algo-clickhouse>
+                <shard>
+                    <replica>
+                        <internal_replication>true</internal_replication>
+                        <host>algo-clickhouse-0.algo-clickhouse-headless.sentry.svc.cluster.local</host>
+                        <port>9000</port>
+                        <user>default</user>
+                        <compression>true</compression>
+                    </replica>
+                </shard>
+                <shard>
+                    <replica>
+                        <internal_replication>true</internal_replication>
+                        <host>algo-clickhouse-1.algo-clickhouse-headless.sentry.svc.cluster.local</host>
+                        <port>9000</port>
+                        <user>default</user>
+                        <compression>true</compression>
+                    </replica>
+                </shard>
+                <shard>
+                    <replica>
+                        <internal_replication>true</internal_replication>
+                        <host>algo-clickhouse-2.algo-clickhouse-headless.sentry.svc.cluster.local</host>
+                        <port>9000</port>
+                        <user>default</user>
+                        <compression>true</compression>
+                    </replica>
+                </shard>
+            </algo-clickhouse>
+        </clickhouse_remote_servers>
+
+        <macros>
+            <replica from_env="HOSTNAME"></replica>
+            <shard from_env="SHARD"></shard>
+        </macros>
+    </yandex>
+---
+# Source: sentry/charts/clickhouse/templates/configmap-users.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: algo-clickhouse-users
+  labels:
+    app.kubernetes.io/name: clickhouse-users
+    app.kubernetes.io/instance: algo-users
+    app.kubernetes.io/managed-by: Helm
+data:
+  users.xml: |-
+    <?xml version="1.0"?>
+    <yandex>
+    </yandex>
+---
+# Source: sentry/charts/kafka/charts/zookeeper/templates/scripts-configmap.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: algo-zookeeper-scripts
+  namespace: sentry
+  labels:
+    app.kubernetes.io/name: zookeeper
+    helm.sh/chart: zookeeper-9.1.5
+    app.kubernetes.io/instance: algo
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/component: zookeeper
+data:
+  init-certs.sh: |-
+    #!/bin/bash
+  setup.sh: |-
+    #!/bin/bash
+
+    # Execute entrypoint as usual after obtaining ZOO_SERVER_ID
+    # check ZOO_SERVER_ID in persistent volume via myid
+    # if not present, set based on POD hostname
+    if [[ -f "/bitnami/zookeeper/data/myid" ]]; then
+        export ZOO_SERVER_ID="$(cat /bitnami/zookeeper/data/myid)"
+    else
+        HOSTNAME="$(hostname -s)"
+        if [[ $HOSTNAME =~ (.*)-([0-9]+)$ ]]; then
+            ORD=${BASH_REMATCH[2]}
+            export ZOO_SERVER_ID="$((ORD + 1 ))"
+        else
+            echo "Failed to get index from hostname $HOST"
+            exit 1
+        fi
+    fi
+    exec /entrypoint.sh /run.sh
+---
+# Source: sentry/charts/kafka/templates/scripts-configmap.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: algo-kafka-scripts
+  namespace: sentry
+  labels:
+    app.kubernetes.io/name: kafka
+    helm.sh/chart: kafka-16.3.2
+    app.kubernetes.io/instance: algo
+    app.kubernetes.io/managed-by: Helm
+data:
+  setup.sh: |-
+    #!/bin/bash
+
+    ID="${MY_POD_NAME#"algo-kafka-"}"
+    if [[ -f "/bitnami/kafka/data/meta.properties" ]]; then
+        export KAFKA_CFG_BROKER_ID="$(grep "broker.id" /bitnami/kafka/data/meta.properties | awk -F '=' '{print $2}')"
+    else
+        export KAFKA_CFG_BROKER_ID="$((ID + 0))"
+    fi
+
+    # Configure zookeeper client
+
+    exec /entrypoint.sh /run.sh
+---
+# Source: sentry/charts/rabbitmq/templates/configuration.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: algo-rabbitmq-config
+  namespace: sentry
+  labels:
+    app.kubernetes.io/name: rabbitmq
+    helm.sh/chart: rabbitmq-8.32.2
+    app.kubernetes.io/instance: algo
+    app.kubernetes.io/managed-by: Helm
+data:
+  rabbitmq.conf: |-
+    ## Username and password
+    ##
+    default_user = guest
+    default_pass = CHANGEME
+    ## Clustering
+    ##
+    cluster_formation.peer_discovery_backend  = rabbit_peer_discovery_k8s
+    cluster_formation.k8s.host = kubernetes.default.svc.cluster.local
+    cluster_formation.node_cleanup.interval = 10
+    cluster_formation.node_cleanup.only_log_warning = true
+    cluster_partition_handling = autoheal
+    load_definitions = /app/load_definition.json
+    # queue master locator
+    queue_master_locator = min-masters
+    # enable guest user
+    loopback_users.guest = false
+    load_definitions = /app/load_definition.json
+---
+# Source: sentry/charts/redis/templates/configmap.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: algo-sentry-redis-configuration
+  namespace: sentry
+  labels:
+    app.kubernetes.io/name: sentry-redis
+    helm.sh/chart: redis-16.12.1
+    app.kubernetes.io/instance: algo
+    app.kubernetes.io/managed-by: Helm
+data:
+  redis.conf: |-
+    # User-supplied common configuration:
+    # Enable AOF https://redis.io/topics/persistence#append-only-file
+    appendonly yes
+    # Disable RDB persistence, AOF persistence already enabled.
+    save ""
+    # End of common configuration
+  master.conf: |-
+    dir /data
+    # User-supplied master configuration:
+    rename-command FLUSHDB ""
+    rename-command FLUSHALL ""
+    # End of master configuration
+  replica.conf: |-
+    dir /data
+    slave-read-only yes
+    # User-supplied replica configuration:
+    rename-command FLUSHDB ""
+    rename-command FLUSHALL ""
+    # End of replica configuration
+---
+# Source: sentry/charts/redis/templates/health-configmap.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: algo-sentry-redis-health
+  namespace: sentry
+  labels:
+    app.kubernetes.io/name: sentry-redis
+    helm.sh/chart: redis-16.12.1
+    app.kubernetes.io/instance: algo
+    app.kubernetes.io/managed-by: Helm
+data:
+  ping_readiness_local.sh: |-
+    #!/bin/bash
+
+    [[ -f $REDIS_PASSWORD_FILE ]] && export REDIS_PASSWORD="$(< "${REDIS_PASSWORD_FILE}")"
+    [[ -n "$REDIS_PASSWORD" ]] && export REDISCLI_AUTH="$REDIS_PASSWORD"
+    response=$(
+      timeout -s 3 $1 \
+      redis-cli \
+        -h localhost \
+        -p $REDIS_PORT \
+        ping
+    )
+    if [ "$?" -eq "124" ]; then
+      echo "Timed out"
+      exit 1
+    fi
+    if [ "$response" != "PONG" ]; then
+      echo "$response"
+      exit 1
+    fi
+  ping_liveness_local.sh: |-
+    #!/bin/bash
+
+    [[ -f $REDIS_PASSWORD_FILE ]] && export REDIS_PASSWORD="$(< "${REDIS_PASSWORD_FILE}")"
+    [[ -n "$REDIS_PASSWORD" ]] && export REDISCLI_AUTH="$REDIS_PASSWORD"
+    response=$(
+      timeout -s 3 $1 \
+      redis-cli \
+        -h localhost \
+        -p $REDIS_PORT \
+        ping
+    )
+    if [ "$?" -eq "124" ]; then
+      echo "Timed out"
+      exit 1
+    fi
+    responseFirstWord=$(echo $response | head -n1 | awk '{print $1;}')
+    if [ "$response" != "PONG" ] && [ "$responseFirstWord" != "LOADING" ] && [ "$responseFirstWord" != "MASTERDOWN" ]; then
+      echo "$response"
+      exit 1
+    fi
+  ping_readiness_master.sh: |-
+    #!/bin/bash
+
+    [[ -f $REDIS_MASTER_PASSWORD_FILE ]] && export REDIS_MASTER_PASSWORD="$(< "${REDIS_MASTER_PASSWORD_FILE}")"
+    [[ -n "$REDIS_MASTER_PASSWORD" ]] && export REDISCLI_AUTH="$REDIS_MASTER_PASSWORD"
+    response=$(
+      timeout -s 3 $1 \
+      redis-cli \
+        -h $REDIS_MASTER_HOST \
+        -p $REDIS_MASTER_PORT_NUMBER \
+        ping
+    )
+    if [ "$?" -eq "124" ]; then
+      echo "Timed out"
+      exit 1
+    fi
+    if [ "$response" != "PONG" ]; then
+      echo "$response"
+      exit 1
+    fi
+  ping_liveness_master.sh: |-
+    #!/bin/bash
+
+    [[ -f $REDIS_MASTER_PASSWORD_FILE ]] && export REDIS_MASTER_PASSWORD="$(< "${REDIS_MASTER_PASSWORD_FILE}")"
+    [[ -n "$REDIS_MASTER_PASSWORD" ]] && export REDISCLI_AUTH="$REDIS_MASTER_PASSWORD"
+    response=$(
+      timeout -s 3 $1 \
+      redis-cli \
+        -h $REDIS_MASTER_HOST \
+        -p $REDIS_MASTER_PORT_NUMBER \
+        ping
+    )
+    if [ "$?" -eq "124" ]; then
+      echo "Timed out"
+      exit 1
+    fi
+    responseFirstWord=$(echo $response | head -n1 | awk '{print $1;}')
+    if [ "$response" != "PONG" ] && [ "$responseFirstWord" != "LOADING" ]; then
+      echo "$response"
+      exit 1
+    fi
+  ping_readiness_local_and_master.sh: |-
+    script_dir="$(dirname "$0")"
+    exit_status=0
+    "$script_dir/ping_readiness_local.sh" $1 || exit_status=$?
+    "$script_dir/ping_readiness_master.sh" $1 || exit_status=$?
+    exit $exit_status
+  ping_liveness_local_and_master.sh: |-
+    script_dir="$(dirname "$0")"
+    exit_status=0
+    "$script_dir/ping_liveness_local.sh" $1 || exit_status=$?
+    "$script_dir/ping_liveness_master.sh" $1 || exit_status=$?
+    exit $exit_status
+---
+# Source: sentry/charts/redis/templates/scripts-configmap.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: algo-sentry-redis-scripts
+  namespace: sentry
+  labels:
+    app.kubernetes.io/name: sentry-redis
+    helm.sh/chart: redis-16.12.1
+    app.kubernetes.io/instance: algo
+    app.kubernetes.io/managed-by: Helm
+data:
+  start-master.sh: |
+    #!/bin/bash
+
+    [[ -f $REDIS_PASSWORD_FILE ]] && export REDIS_PASSWORD="$(< "${REDIS_PASSWORD_FILE}")"
+    if [[ ! -f /opt/bitnami/redis/etc/master.conf ]];then
+        cp /opt/bitnami/redis/mounted-etc/master.conf /opt/bitnami/redis/etc/master.conf
+    fi
+    if [[ ! -f /opt/bitnami/redis/etc/redis.conf ]];then
+        cp /opt/bitnami/redis/mounted-etc/redis.conf /opt/bitnami/redis/etc/redis.conf
+    fi
+    ARGS=("--port" "${REDIS_PORT}")
+    ARGS+=("--protected-mode" "no")
+    ARGS+=("--include" "/opt/bitnami/redis/etc/redis.conf")
+    ARGS+=("--include" "/opt/bitnami/redis/etc/master.conf")
+    exec redis-server "${ARGS[@]}"
+  start-replica.sh: |
+    #!/bin/bash
+
+    get_port() {
+        hostname="$1"
+        type="$2"
+
+        port_var=$(echo "${hostname^^}_SERVICE_PORT_$type" | sed "s/-/_/g")
+        port=${!port_var}
+
+        if [ -z "$port" ]; then
+            case $type in
+                "SENTINEL")
+                    echo 26379
+                    ;;
+                "REDIS")
+                    echo 6379
+                    ;;
+            esac
+        else
+            echo $port
+        fi
+    }
+
+    get_full_hostname() {
+        hostname="$1"
+        echo "${hostname}.${HEADLESS_SERVICE}"
+    }
+
+    REDISPORT=$(get_port "$HOSTNAME" "REDIS")
+
+    [[ -f $REDIS_PASSWORD_FILE ]] && export REDIS_PASSWORD="$(< "${REDIS_PASSWORD_FILE}")"
+    [[ -f $REDIS_MASTER_PASSWORD_FILE ]] && export REDIS_MASTER_PASSWORD="$(< "${REDIS_MASTER_PASSWORD_FILE}")"
+    if [[ ! -f /opt/bitnami/redis/etc/replica.conf ]];then
+        cp /opt/bitnami/redis/mounted-etc/replica.conf /opt/bitnami/redis/etc/replica.conf
+    fi
+    if [[ ! -f /opt/bitnami/redis/etc/redis.conf ]];then
+        cp /opt/bitnami/redis/mounted-etc/redis.conf /opt/bitnami/redis/etc/redis.conf
+    fi
+
+    echo "" >> /opt/bitnami/redis/etc/replica.conf
+    echo "replica-announce-port $REDISPORT" >> /opt/bitnami/redis/etc/replica.conf
+    echo "replica-announce-ip $(get_full_hostname "$HOSTNAME")" >> /opt/bitnami/redis/etc/replica.conf
+    ARGS=("--port" "${REDIS_PORT}")
+    ARGS+=("--slaveof" "${REDIS_MASTER_HOST}" "${REDIS_MASTER_PORT_NUMBER}")
+    ARGS+=("--protected-mode" "no")
+    ARGS+=("--include" "/opt/bitnami/redis/etc/redis.conf")
+    ARGS+=("--include" "/opt/bitnami/redis/etc/replica.conf")
+    exec redis-server "${ARGS[@]}"
+---
+# Source: sentry/charts/zookeeper/templates/scripts-configmap.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: algo-zookeeper-clickhouse-scripts
+  namespace: sentry
+  labels:
+    app.kubernetes.io/name: zookeeper-clickhouse
+    helm.sh/chart: zookeeper-9.0.0
+    app.kubernetes.io/instance: algo
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/component: zookeeper
+data:
+  init-certs.sh: |-
+    #!/bin/bash
+  setup.sh: |-
+    #!/bin/bash
+
+    # Execute entrypoint as usual after obtaining ZOO_SERVER_ID
+    # check ZOO_SERVER_ID in persistent volume via myid
+    # if not present, set based on POD hostname
+    if [[ -f "/bitnami/zookeeper/data/myid" ]]; then
+        export ZOO_SERVER_ID="$(cat /bitnami/zookeeper/data/myid)"
+    else
+        HOSTNAME="$(hostname -s)"
+        if [[ $HOSTNAME =~ (.*)-([0-9]+)$ ]]; then
+            ORD=${BASH_REMATCH[2]}
+            export ZOO_SERVER_ID="$((ORD + 1 ))"
+        else
+            echo "Failed to get index from hostname $HOST"
+            exit 1
+        fi
+    fi
+    exec /entrypoint.sh /run.sh
+---
+# Source: sentry/templates/configmap-memcached.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: algo-sentry-memcached
+  namespace: sentry
+data:
+  MEMCACHED_MEMORY_LIMIT: "2048"
+  MEMCACHED_MAX_ITEM_SIZE: "26214400"
+---
+# Source: sentry/templates/configmap-nginx.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: algo-sentry-nginx
+  namespace: sentry
+data:
+  server-block.conf: |
+    upstream relay {
+      server algo-sentry-relay:3000;
+    }
+
+    upstream sentry {
+      server algo-sentry-web:9000;
+    }
+
+    server {
+      listen 8080;
+
+      proxy_redirect off;
+      proxy_set_header Host $host;
+
+      location /api/store/ {
+        proxy_pass http://relay;
+      }
+
+      location ~ ^/api/[1-9]\d*/ {
+        proxy_pass http://relay;
+      }
+
+      location / {
+        proxy_pass http://sentry;
+      }
+    }
+---
+# Source: sentry/templates/configmap-relay.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: algo-sentry-relay
+  namespace: sentry
+  labels:
+    app: sentry
+    chart: "sentry-17.0.0"
+    release: "algo"
+    heritage: "Helm"
+data:
+  config.yml: |-
+    relay:
+      mode: managed
+      upstream: "http://algo-sentry-web:9000/"
+      host: 0.0.0.0
+      port: 3000
+
+    processing:
+      enabled: true
+
+      kafka_config:
+        - name: "bootstrap.servers"
+          value: "algo-kafka:9092"
+        - name: "message.max.bytes"
+          value: 50000000  # 50MB or bust
+      redis: "redis://:@algo-sentry-redis-master:6379"
+
+    # No YAML relay config given
+---
+# Source: sentry/templates/configmap-sentry.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: algo-sentry-sentry
+  namespace: sentry
+  labels:
+    app: sentry
+    chart: "sentry-17.0.0"
+    release: "algo"
+    heritage: "Helm"
+data:
+  config.yml: |-
+
+    # This URL will be used to tell Symbolicator where to obtain the Sentry source.
+    # See https://getsentry.github.io/symbolicator/api/
+    system.internal-url-prefix: 'http://algo-sentry-web:9000'
+    symbolicator.enabled: false
+
+    ##########
+    # Github #
+    ##########
+
+    ##########
+    # Google #
+    ##########
+
+    #########
+    # Slack #
+    #########
+
+    #########
+    # Redis #
+    #########
+    redis.clusters:
+      default:
+        hosts:
+          0:
+            host: "algo-sentry-redis-master"
+            port: 6379
+            password: ""
+
+    ################
+    # File storage #
+    ################
+    # Uploaded media uses these `filestore` settings. The available
+    # backends are either `filesystem` or `s3`.
+    filestore.backend: "filesystem"
+    filestore.options:
+      location: "/var/lib/sentry/files"
+    
+  sentry.conf.py: |-
+    from sentry.conf.server import *  # NOQA
+    from distutils.util import strtobool
+
+    DATABASES = {
+        "default": {
+            "ENGINE": "sentry.db.postgres",
+            "NAME": "sentry",
+            "USER": "postgres",
+            "PASSWORD": os.environ.get("POSTGRES_PASSWORD", "Aqumon@2050"),
+            "HOST": "algo-sentry-postgresql",
+            "PORT": 5432,
+        }
+    }
+
+    # You should not change this setting after your database has been created
+    # unless you have altered all schemas first
+    SENTRY_USE_BIG_INTS = True
+
+    ###########
+    # General #
+    ###########
+
+
+    secret_key = env('SENTRY_SECRET_KEY')
+    if not secret_key:
+      raise Exception('Error: SENTRY_SECRET_KEY is undefined')
+
+    SENTRY_OPTIONS['system.secret-key'] = secret_key
+
+    # Instruct Sentry that this install intends to be run by a single organization
+    # and thus various UI optimizations should be enabled.
+    SENTRY_SINGLE_ORGANIZATION = True
+
+    SENTRY_OPTIONS["system.event-retention-days"] = int(env('SENTRY_EVENT_RETENTION_DAYS') or "90")
+
+    #########
+    # Queue #
+    #########
+
+    # See https://docs.getsentry.com/on-premise/server/queue/ for more
+    # information on configuring your queue broker and workers. Sentry relies
+    # on a Python framework called Celery to manage queues.
+    BROKER_URL = os.environ.get("BROKER_URL", "amqp://guest:guest@algo-rabbitmq:5672//")
+
+    #########
+    # Cache #
+    #########
+
+    # Sentry currently utilizes two separate mechanisms. While CACHES is not a
+    # requirement, it will optimize several high throughput patterns.
+
+    # CACHES = {
+    #     "default": {
+    #         "BACKEND": "django.core.cache.backends.memcached.MemcachedCache",
+    #         "LOCATION": ["memcached:11211"],
+    #         "TIMEOUT": 3600,
+    #     }
+    # }
+
+    # A primary cache is required for things such as processing events
+    SENTRY_CACHE = "sentry.cache.redis.RedisCache"
+
+    DEFAULT_KAFKA_OPTIONS = {
+        "bootstrap.servers": "algo-kafka:9092",
+        "message.max.bytes": 50000000,
+        "socket.timeout.ms": 1000,
+    }
+
+    SENTRY_EVENTSTREAM = "sentry.eventstream.kafka.KafkaEventStream"
+    SENTRY_EVENTSTREAM_OPTIONS = {"producer_configuration": DEFAULT_KAFKA_OPTIONS}
+
+    KAFKA_CLUSTERS["default"] = DEFAULT_KAFKA_OPTIONS
+
+    ###############
+    # Rate Limits #
+    ###############
+
+    # Rate limits apply to notification handlers and are enforced per-project
+    # automatically.
+
+    SENTRY_RATELIMITER = "sentry.ratelimits.redis.RedisRateLimiter"
+
+    ##################
+    # Update Buffers #
+    ##################
+
+    # Buffers (combined with queueing) act as an intermediate layer between the
+    # database and the storage API. They will greatly improve efficiency on large
+    # numbers of the same events being sent to the API in a short amount of time.
+    # (read: if you send any kind of real data to Sentry, you should enable buffers)
+
+    SENTRY_BUFFER = "sentry.buffer.redis.RedisBuffer"
+
+    ##########
+    # Quotas #
+    ##########
+
+    # Quotas allow you to rate limit individual projects or the Sentry install as
+    # a whole.
+
+    SENTRY_QUOTAS = "sentry.quotas.redis.RedisQuota"
+
+    ########
+    # TSDB #
+    ########
+
+    # The TSDB is used for building charts as well as making things like per-rate
+    # alerts possible.
+
+    SENTRY_TSDB = "sentry.tsdb.redissnuba.RedisSnubaTSDB"
+
+    #########
+    # SNUBA #
+    #########
+
+    SENTRY_SEARCH = "sentry.search.snuba.EventsDatasetSnubaSearchBackend"
+    SENTRY_SEARCH_OPTIONS = {}
+    SENTRY_TAGSTORE_OPTIONS = {}
+
+    ###########
+    # Digests #
+    ###########
+
+    # The digest backend powers notification summaries.
+
+    SENTRY_DIGESTS = "sentry.digests.backends.redis.RedisBackend"
+
+    ##############
+    # Web Server #
+    ##############
+
+    SENTRY_WEB_HOST = "0.0.0.0"
+    SENTRY_WEB_PORT = 9000
+    SENTRY_PUBLIC = False
+    SENTRY_WEB_OPTIONS = {
+        "http": "%s:%s" % (SENTRY_WEB_HOST, SENTRY_WEB_PORT),
+        "protocol": "uwsgi",
+        # This is needed to prevent https://git.io/fj7Lw
+        "uwsgi-socket": None,
+        # Keep this between 15s-75s as that's what Relay supports
+        "http-keepalive": 15,
+        "http-chunked-input": True,
+        # the number of web workers
+        'workers': 3,
+        # Turn off memory reporting
+        "memory-report": False,
+        # Some stuff so uwsgi will cycle workers sensibly
+        'max-requests': 100000,
+        'max-requests-delta': 500,
+        'max-worker-lifetime': 86400,
+        # Duplicate options from sentry default just so we don't get
+        # bit by sentry changing a default value that we depend on.
+        'thunder-lock': True,
+        'log-x-forwarded-for': False,
+        'buffer-size': 32768,
+        'limit-post': 209715200,
+        'disable-logging': True,
+        'reload-on-rss': 600,
+        'ignore-sigpipe': True,
+        'ignore-write-errors': True,
+        'disable-write-exception': True,
+    }
+
+    ###########
+    # SSL/TLS #
+    ###########
+
+    # If you're using a reverse SSL proxy, you should enable the X-Forwarded-Proto
+    # header and enable the settings below
+
+    # SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+    # SESSION_COOKIE_SECURE = True
+    # CSRF_COOKIE_SECURE = True
+    # SOCIAL_AUTH_REDIRECT_IS_HTTPS = True
+
+    # End of SSL/TLS settings
+
+    ############
+    # Features #
+    ############
+
+
+    SENTRY_FEATURES = {
+      "auth:register": True
+    }
+    SENTRY_FEATURES["projects:sample-events"] = False
+    SENTRY_FEATURES.update(
+        {
+            feature: True
+            for feature in ("organizations:advanced-search",
+                "organizations:android-mappings",
+                "organizations:api-keys",
+                "organizations:boolean-search",
+                "organizations:related-events",
+                "organizations:alert-filters",
+                "organizations:custom-symbol-sources",
+                "organizations:dashboards-basic",
+                "organizations:dashboards-edit",
+                "organizations:data-forwarding",
+                "organizations:discover",
+                "organizations:discover-basic",
+                "organizations:discover-query",
+                "organizations:discover-frontend-use-events-endpoint",
+                "organizations:enterprise-perf",
+                "organizations:event-attachments",
+                "organizations:events",
+                "organizations:global-views",
+                "organizations:incidents",
+                "organizations:metric-alert-builder-aggregate",
+                "organizations:metric-alert-gui-filters",
+                "organizations:integrations-event-hooks",
+                "organizations:integrations-issue-basic",
+                "organizations:integrations-issue-sync",
+                "organizations:integrations-alert-rule",
+                "organizations:integrations-chat-unfurl",
+                "organizations:integrations-incident-management",
+                "organizations:integrations-ticket-rules",
+                "organizations:integrations-vsts-limited-scopes",
+                "organizations:integrations-stacktrace-link",
+                "organizations:internal-catchall",
+                "organizations:invite-members",
+                "organizations:large-debug-files",
+                "organizations:monitors",
+                "organizations:onboarding",
+                "organizations:org-saved-searches",
+                "organizations:performance-view",
+                "organizations:performance-frontend-use-events-endpoint",
+                "organizations:project-detail",
+                "organizations:relay",
+                "organizations:release-performance-views",
+                "organizations:rule-page",
+                "organizations:set-grouping-config",
+                "organizations:custom-event-title",
+                "organizations:slack-migration",
+                "organizations:sso-basic",
+                "organizations:sso-rippling",
+                "organizations:sso-saml2",
+                "organizations:sso-migration",
+                "organizations:stacktrace-hover-preview",
+                "organizations:symbol-sources",
+                "organizations:transaction-comparison",
+                "organizations:usage-stats-graph",
+                "organizations:inbox",
+                "organizations:unhandled-issue-flag",
+                "organizations:invite-members-rate-limits",
+                "organizations:dashboards-v2",
+
+                "projects:alert-filters",
+                "projects:custom-inbound-filters",
+                "projects:data-forwarding",
+                "projects:discard-groups",
+                "projects:issue-alerts-targeting",
+                "projects:minidump",
+                "projects:rate-limits",
+                "projects:sample-events",
+                "projects:servicehooks",
+                "projects:similarity-view",
+                "projects:similarity-indexing",
+                "projects:similarity-view-v2",
+                "projects:similarity-indexing-v2",
+                "projects:reprocessing-v2",
+
+                "projects:plugins",
+            )
+        }
+    )
+
+    #######################
+    # Email Configuration #
+    #######################
+    SENTRY_OPTIONS['mail.backend'] = os.getenv("SENTRY_EMAIL_BACKEND", "dummy")
+    SENTRY_OPTIONS['mail.use-tls'] = bool(strtobool(os.getenv("SENTRY_EMAIL_USE_TLS", "false")))
+    SENTRY_OPTIONS['mail.use-ssl'] = bool(strtobool(os.getenv("SENTRY_EMAIL_USE_SSL", "false")))
+    SENTRY_OPTIONS['mail.username'] = os.getenv("SENTRY_EMAIL_USERNAME", "")
+    SENTRY_OPTIONS['mail.password'] = os.getenv("SENTRY_EMAIL_PASSWORD", "")
+    SENTRY_OPTIONS['mail.port'] = int(os.getenv("SENTRY_EMAIL_PORT", "25"))
+    SENTRY_OPTIONS['mail.host'] = os.getenv("SENTRY_EMAIL_HOST", "")
+    SENTRY_OPTIONS['mail.from'] = os.getenv("SENTRY_EMAIL_FROM", "")
+
+    #########################
+    # Bitbucket Integration #
+    ########################
+
+    # BITBUCKET_CONSUMER_KEY = 'YOUR_BITBUCKET_CONSUMER_KEY'
+    # BITBUCKET_CONSUMER_SECRET = 'YOUR_BITBUCKET_CONSUMER_SECRET'
+
+    #########
+    # Relay #
+    #########
+    SENTRY_RELAY_WHITELIST_PK = []
+    SENTRY_RELAY_OPEN_REGISTRATION = True
+
+    # No Python Extension Config Given
+---
+# Source: sentry/templates/configmap-snuba.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: algo-sentry-snuba
+  namespace: sentry
+  labels:
+    app: sentry
+    chart: "sentry-17.0.0"
+    release: "algo"
+    heritage: "Helm"
+data:
+  settings.py: |
+    import os
+
+    from snuba.settings import *
+
+    env = os.environ.get
+
+    DEBUG = env("DEBUG", "0").lower() in ("1", "true")
+
+    # Clickhouse Options
+    CLUSTERS = [
+      {
+        "host": env("CLICKHOUSE_HOST", "algo-clickhouse"),
+        "port": int(9000),
+        "user":  env("CLICKHOUSE_USER", "default"),
+        "password": env("CLICKHOUSE_PASSWORD", ""),
+        "database": env("CLICKHOUSE_DATABASE", "default"),
+        "http_port": 8123,
+        "storage_sets": {
+            "cdc",
+            "discover",
+            "events",
+            "events_ro",
+            "metrics",
+            "migrations",
+            "outcomes",
+            "querylog",
+            "sessions",
+            "transactions",
+            "transactions_ro",
+            "transactions_v2",
+            "errors_v2",
+            "errors_v2_ro",
+            "profiles",
+            "functions",
+            "replays",
+            "generic_metrics_sets",
+            "generic_metrics_distributions",
+        },
+        "single_node": False,
+        "cluster_name": "algo-clickhouse",
+        "distributed_cluster_name": "algo-clickhouse",
+      },
+    ]
+
+    # Redis Options
+    REDIS_HOST = "algo-sentry-redis-master"
+    REDIS_PORT = 6379
+    REDIS_PASSWORD = ""
+    REDIS_DB = int(env("REDIS_DB", 1))
+
+    # No Python Extension Config Given
+---
+# Source: sentry/templates/pvc.yaml
+kind: PersistentVolumeClaim
+apiVersion: v1
+metadata:
+  name: algo-sentry-data
+  namespace: sentry
+  labels:
+    app: sentry
+    chart: "sentry-17.0.0"
+    release: "algo"
+    heritage: "Helm"
+spec:
+  accessModes:
+    - "ReadWriteOnce"
+  resources:
+    requests:
+      storage: "10Gi"
+---
+# Source: sentry/charts/rabbitmq/templates/role.yaml
+kind: Role
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: algo-rabbitmq-endpoint-reader
+  namespace: sentry
+  labels:
+    app.kubernetes.io/name: rabbitmq
+    helm.sh/chart: rabbitmq-8.32.2
+    app.kubernetes.io/instance: algo
+    app.kubernetes.io/managed-by: Helm
+rules:
+  - apiGroups: [""]
+    resources: ["endpoints"]
+    verbs: ["get"]
+  - apiGroups: [""]
+    resources: ["events"]
+    verbs: ["create"]
+---
+# Source: sentry/charts/rabbitmq/templates/rolebinding.yaml
+kind: RoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: algo-rabbitmq-endpoint-reader
+  namespace: sentry
+  labels:
+    app.kubernetes.io/name: rabbitmq
+    helm.sh/chart: rabbitmq-8.32.2
+    app.kubernetes.io/instance: algo
+    app.kubernetes.io/managed-by: Helm
+subjects:
+  - kind: ServiceAccount
+    name: algo-rabbitmq
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: algo-rabbitmq-endpoint-reader
+---
+# Source: sentry/charts/clickhouse/templates/svc-clickhouse-headless.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: algo-clickhouse-headless
+  namespace: sentry
+  labels:
+    app.kubernetes.io/name: clickhouse-headless
+    app.kubernetes.io/instance: algo-headless
+    app.kubernetes.io/managed-by: Helm
+spec:
+  clusterIP: "None"
+  ports:
+  - port: 9000
+    targetPort: tcp-port
+    protocol: TCP
+    name: tcp-port
+  - port: 8123
+    targetPort: http-port
+    protocol: TCP
+    name: http-port
+  - port: 9009
+    targetPort: inter-http-port
+    protocol: TCP
+    name: inter-http-port
+  selector:
+    app.kubernetes.io/name: clickhouse
+    app.kubernetes.io/instance: algo
+---
+# Source: sentry/charts/clickhouse/templates/svc-clickhouse.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: algo-clickhouse
+  namespace: sentry
+  labels:
+    app.kubernetes.io/name: clickhouse
+    app.kubernetes.io/instance: algo
+    app.kubernetes.io/managed-by: Helm
+spec:
+  ports:
+  - port: 9000
+    targetPort: tcp-port
+    protocol: TCP
+    name: tcp-port
+  - port: 8123
+    targetPort: http-port
+    protocol: TCP
+    name: http-port
+  - port: 9009
+    targetPort: inter-http-port
+    protocol: TCP
+    name: inter-http-port
+  selector:
+    app.kubernetes.io/name: clickhouse
+    app.kubernetes.io/instance: algo
+---
+# Source: sentry/charts/kafka/charts/zookeeper/templates/svc-headless.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: algo-zookeeper-headless
+  namespace: sentry
+  labels:
+    app.kubernetes.io/name: zookeeper
+    helm.sh/chart: zookeeper-9.1.5
+    app.kubernetes.io/instance: algo
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/component: zookeeper
+spec:
+  type: ClusterIP
+  clusterIP: None
+  publishNotReadyAddresses: true
+  ports:
+    - name: tcp-client
+      port: 2181
+      targetPort: client
+    - name: tcp-follower
+      port: 2888
+      targetPort: follower
+    - name: tcp-election
+      port: 3888
+      targetPort: election
+  selector:
+    app.kubernetes.io/name: zookeeper
+    app.kubernetes.io/instance: algo
+    app.kubernetes.io/component: zookeeper
+---
+# Source: sentry/charts/kafka/charts/zookeeper/templates/svc.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: algo-zookeeper
+  namespace: sentry
+  labels:
+    app.kubernetes.io/name: zookeeper
+    helm.sh/chart: zookeeper-9.1.5
+    app.kubernetes.io/instance: algo
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/component: zookeeper
+spec:
+  type: ClusterIP
+  sessionAffinity: None
+  ports:
+    - name: tcp-client
+      port: 2181
+      targetPort: client
+      nodePort: null
+    - name: tcp-follower
+      port: 2888
+      targetPort: follower
+    - name: tcp-election
+      port: 3888
+      targetPort: election
+  selector:
+    app.kubernetes.io/name: zookeeper
+    app.kubernetes.io/instance: algo
+    app.kubernetes.io/component: zookeeper
+---
+# Source: sentry/charts/kafka/templates/svc-headless.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: algo-kafka-headless
+  namespace: sentry
+  labels:
+    app.kubernetes.io/name: kafka
+    helm.sh/chart: kafka-16.3.2
+    app.kubernetes.io/instance: algo
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/component: kafka
+spec:
+  type: ClusterIP
+  clusterIP: None
+  ports:
+    - name: tcp-client
+      port: 9092
+      protocol: TCP
+      targetPort: kafka-client
+    - name: tcp-internal
+      port: 9093
+      protocol: TCP
+      targetPort: kafka-internal
+  selector:
+    app.kubernetes.io/name: kafka
+    app.kubernetes.io/instance: algo
+    app.kubernetes.io/component: kafka
+---
+# Source: sentry/charts/kafka/templates/svc.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: algo-kafka
+  namespace: sentry
+  labels:
+    app.kubernetes.io/name: kafka
+    helm.sh/chart: kafka-16.3.2
+    app.kubernetes.io/instance: algo
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/component: kafka
+spec:
+  type: ClusterIP
+  sessionAffinity: None
+  ports:
+    - name: tcp-client
+      port: 9092
+      protocol: TCP
+      targetPort: kafka-client
+      nodePort: null
+  selector:
+    app.kubernetes.io/name: kafka
+    app.kubernetes.io/instance: algo
+    app.kubernetes.io/component: kafka
+---
+# Source: sentry/charts/nginx/templates/svc.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: algo-nginx
+  namespace: sentry
+  labels:
+    app.kubernetes.io/name: nginx
+    helm.sh/chart: nginx-12.0.4
+    app.kubernetes.io/instance: algo
+    app.kubernetes.io/managed-by: Helm
+  annotations:
+spec:
+  type: ClusterIP
+  sessionAffinity: None
+  ports:
+    - name: http
+      port: 80
+      targetPort: http
+  selector:
+    app.kubernetes.io/name: nginx
+    app.kubernetes.io/instance: algo
+---
+# Source: sentry/charts/postgresql/templates/svc-headless.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: algo-sentry-postgresql-headless
+  labels:
+    app.kubernetes.io/name: sentry-postgresql
+    helm.sh/chart: postgresql-10.16.2
+    app.kubernetes.io/instance: algo
+    app.kubernetes.io/managed-by: Helm
+    # Use this annotation in addition to the actual publishNotReadyAddresses
+    # field below because the annotation will stop being respected soon but the
+    # field is broken in some versions of Kubernetes:
+    # https://github.com/kubernetes/kubernetes/issues/58662
+    service.alpha.kubernetes.io/tolerate-unready-endpoints: "true"
+  namespace: sentry
+spec:
+  type: ClusterIP
+  clusterIP: None
+  # We want all pods in the StatefulSet to have their addresses published for
+  # the sake of the other Postgresql pods even before they're ready, since they
+  # have to be able to talk to each other in order to become ready.
+  publishNotReadyAddresses: true
+  ports:
+    - name: tcp-postgresql
+      port: 5432
+      targetPort: tcp-postgresql
+  selector:
+    app.kubernetes.io/name: sentry-postgresql
+    app.kubernetes.io/instance: algo
+---
+# Source: sentry/charts/postgresql/templates/svc.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: algo-sentry-postgresql
+  labels:
+    app.kubernetes.io/name: sentry-postgresql
+    helm.sh/chart: postgresql-10.16.2
+    app.kubernetes.io/instance: algo
+    app.kubernetes.io/managed-by: Helm
+  annotations:
+  namespace: sentry
+spec:
+  type: ClusterIP
+  ports:
+    - name: tcp-postgresql
+      port: 5432
+      targetPort: tcp-postgresql
+  selector:
+    app.kubernetes.io/name: sentry-postgresql
+    app.kubernetes.io/instance: algo
+    role: primary
+---
+# Source: sentry/charts/rabbitmq/templates/svc-headless.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: algo-rabbitmq-headless
+  namespace: sentry
+  labels:
+    app.kubernetes.io/name: rabbitmq
+    helm.sh/chart: rabbitmq-8.32.2
+    app.kubernetes.io/instance: algo
+    app.kubernetes.io/managed-by: Helm
+spec:
+  clusterIP: None
+  ports:
+    - name: epmd
+      port: 4369
+      targetPort: epmd
+    - name: amqp
+      port: 5672
+      targetPort: amqp
+    - name: dist
+      port: 25672
+      targetPort: dist
+    - name: http-stats
+      port: 15672
+      targetPort: stats
+  selector: 
+    app.kubernetes.io/name: rabbitmq
+    app.kubernetes.io/instance: algo
+  publishNotReadyAddresses: true
+---
+# Source: sentry/charts/rabbitmq/templates/svc.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: algo-rabbitmq
+  namespace: sentry
+  labels:
+    app.kubernetes.io/name: rabbitmq
+    helm.sh/chart: rabbitmq-8.32.2
+    app.kubernetes.io/instance: algo
+    app.kubernetes.io/managed-by: Helm
+spec:
+  type: ClusterIP
+  ports:
+    - name: amqp
+      port: 5672
+      targetPort: amqp
+      nodePort: null
+    - name: epmd
+      port: 4369
+      targetPort: epmd
+      nodePort: null
+    - name: dist
+      port: 25672
+      targetPort: dist
+      nodePort: null
+    - name: http-stats
+      port: 15672
+      targetPort: stats
+      nodePort: null
+  selector: 
+    app.kubernetes.io/name: rabbitmq
+    app.kubernetes.io/instance: algo
+---
+# Source: sentry/charts/redis/templates/headless-svc.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: algo-sentry-redis-headless
+  namespace: sentry
+  labels:
+    app.kubernetes.io/name: sentry-redis
+    helm.sh/chart: redis-16.12.1
+    app.kubernetes.io/instance: algo
+    app.kubernetes.io/managed-by: Helm
+  annotations:
+    
+spec:
+  type: ClusterIP
+  clusterIP: None
+  ports:
+    - name: tcp-redis
+      port: 6379
+      targetPort: redis
+  selector:
+    app.kubernetes.io/name: sentry-redis
+    app.kubernetes.io/instance: algo
+---
+# Source: sentry/charts/redis/templates/master/service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: algo-sentry-redis-master
+  namespace: sentry
+  labels:
+    app.kubernetes.io/name: sentry-redis
+    helm.sh/chart: redis-16.12.1
+    app.kubernetes.io/instance: algo
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/component: master
+spec:
+  type: ClusterIP
+  sessionAffinity: None
+  ports:
+    - name: tcp-redis
+      port: 6379
+      targetPort: redis
+      nodePort: null
+  selector:
+    app.kubernetes.io/name: sentry-redis
+    app.kubernetes.io/instance: algo
+    app.kubernetes.io/component: master
+---
+# Source: sentry/charts/redis/templates/replicas/service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: algo-sentry-redis-replicas
+  namespace: sentry
+  labels:
+    app.kubernetes.io/name: sentry-redis
+    helm.sh/chart: redis-16.12.1
+    app.kubernetes.io/instance: algo
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/component: replica
+spec:
+  type: ClusterIP
+  sessionAffinity: None
+  ports:
+    - name: tcp-redis
+      port: 6379
+      targetPort: redis
+      nodePort: null
+  selector:
+    app.kubernetes.io/name: sentry-redis
+    app.kubernetes.io/instance: algo
+    app.kubernetes.io/component: replica
+---
+# Source: sentry/charts/zookeeper/templates/svc-headless.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: algo-zookeeper-clickhouse-headless
+  namespace: sentry
+  labels:
+    app.kubernetes.io/name: zookeeper-clickhouse
+    helm.sh/chart: zookeeper-9.0.0
+    app.kubernetes.io/instance: algo
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/component: zookeeper
+spec:
+  type: ClusterIP
+  clusterIP: None
+  publishNotReadyAddresses: true
+  ports:
+    - name: tcp-client
+      port: 2181
+      targetPort: client
+    - name: tcp-follower
+      port: 2888
+      targetPort: follower
+    - name: tcp-election
+      port: 3888
+      targetPort: election
+  selector:
+    app.kubernetes.io/name: zookeeper-clickhouse
+    app.kubernetes.io/instance: algo
+    app.kubernetes.io/component: zookeeper
+---
+# Source: sentry/charts/zookeeper/templates/svc.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: algo-zookeeper-clickhouse
+  namespace: sentry
+  labels:
+    app.kubernetes.io/name: zookeeper-clickhouse
+    helm.sh/chart: zookeeper-9.0.0
+    app.kubernetes.io/instance: algo
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/component: zookeeper
+spec:
+  type: ClusterIP
+  sessionAffinity: None
+  ports:
+    - name: tcp-client
+      port: 2181
+      targetPort: client
+      nodePort: null
+    - name: tcp-follower
+      port: 2888
+      targetPort: follower
+    - name: tcp-election
+      port: 3888
+      targetPort: election
+  selector:
+    app.kubernetes.io/name: zookeeper-clickhouse
+    app.kubernetes.io/instance: algo
+    app.kubernetes.io/component: zookeeper
+---
+# Source: sentry/templates/service-relay.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: algo-sentry-relay
+  namespace: sentry
+  annotations:
+  labels:
+    app: algo-sentry
+    chart: "sentry-17.0.0"
+    release: "algo"
+    heritage: "Helm"
+spec:
+  type: ClusterIP
+  ports:
+  - port: 3000
+    targetPort: 3000
+    protocol: TCP
+    name: sentry-relay
+  selector:
+    app: algo-sentry
+    role: relay
+---
+# Source: sentry/templates/service-sentry.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: algo-sentry-web
+  namespace: sentry
+  annotations:
+  labels:
+    app: algo-sentry
+    chart: "sentry-17.0.0"
+    release: "algo"
+    heritage: "Helm"
+spec:
+  type: ClusterIP
+  ports:
+  - port: 9000
+    targetPort: 9000
+    protocol: TCP
+    name: sentry
+  selector:
+    app: algo-sentry
+    role: web
+---
+# Source: sentry/templates/service-snuba.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: algo-sentry-snuba
+  namespace: sentry
+  annotations:
+  labels:
+    app: algo-sentry
+    chart: "sentry-17.0.0"
+    release: "algo"
+    heritage: "Helm"
+spec:
+  type: ClusterIP
+  ports:
+  - port: 1218
+    targetPort: 1218
+    protocol: TCP
+    name: sentry
+  selector:
+    app: algo-sentry
+    role: snuba-api
+---
+# Source: sentry/charts/nginx/templates/deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: algo-nginx
+  namespace: sentry
+  labels:
+    app.kubernetes.io/name: nginx
+    helm.sh/chart: nginx-12.0.4
+    app.kubernetes.io/instance: algo
+    app.kubernetes.io/managed-by: Helm
+spec:
+  replicas: 1
+  strategy:
+    rollingUpdate: {}
+    type: RollingUpdate
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: nginx
+      app.kubernetes.io/instance: algo
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: nginx
+        helm.sh/chart: nginx-12.0.4
+        app.kubernetes.io/instance: algo
+        app.kubernetes.io/managed-by: Helm
+      annotations:
+    spec:
+      
+      automountServiceAccountToken: false
+      shareProcessNamespace: false
+      serviceAccountName: default
+      affinity:
+        podAffinity:
+          
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - podAffinityTerm:
+                labelSelector:
+                  matchLabels:
+                    app.kubernetes.io/name: nginx
+                    app.kubernetes.io/instance: algo
+                namespaces:
+                  - "sentry"
+                topologyKey: kubernetes.io/hostname
+              weight: 1
+        nodeAffinity:
+          
+      hostNetwork: false
+      hostIPC: false
+      initContainers:
+      containers:
+        - name: nginx
+          image: docker.io/bitnami/nginx:1.22.0-debian-11-r3
+          imagePullPolicy: "IfNotPresent"
+          env:
+            - name: BITNAMI_DEBUG
+              value: "false"
+          envFrom:
+          ports:
+            - name: http
+              containerPort: 8080
+          livenessProbe:
+            failureThreshold: 6
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            successThreshold: 1
+            timeoutSeconds: 5
+            tcpSocket:
+              port: http
+          readinessProbe:
+            failureThreshold: 3
+            initialDelaySeconds: 5
+            periodSeconds: 5
+            successThreshold: 1
+            timeoutSeconds: 3
+            tcpSocket:
+              port: http
+          resources:
+            limits: {}
+            requests: {}
+          volumeMounts:
+            - name: nginx-server-block
+              mountPath: /opt/bitnami/nginx/conf/server_blocks
+      volumes:
+        - name: nginx-server-block
+          configMap:
+            name: algo-sentry-nginx
+---
+# Source: sentry/templates/deployment-sentry-cron.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: algo-sentry-cron
+  namespace: sentry
+  labels:
+    app: algo-sentry
+    chart: "sentry-17.0.0"
+    release: "algo"
+    heritage: "Helm"
+spec:
+  revisionHistoryLimit: 10
+  selector:
+    matchLabels:
+        app: algo-sentry
+        release: "algo"
+        role: cron
+  replicas: 1
+  template:
+    metadata:
+      annotations:
+        checksum/configYml: 44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a
+        checksum/sentryConfPy: d5f85a6a8afbc55eebe23801e1a51a0fb4c0428c9a73ef6708d8dc83e079cd49
+        checksum/config.yaml: a473f6af0de70f1d3aea10fe25d1572402a0d4380cc023b16bb43305e200cd86
+      labels:
+        app: algo-sentry
+        release: "algo"
+        role: cron
+    spec:
+      affinity:
+      containers:
+      - name: sentry-cron
+        image: "getsentry/sentry:22.10.0"
+        imagePullPolicy: IfNotPresent
+        command: ["sentry"]
+        args:
+          - "run"
+          - "cron"
+        env:
+        - name: SNUBA
+          value: http://algo-sentry-snuba:1218
+        - name: SENTRY_SECRET_KEY
+          valueFrom:
+            secretKeyRef:
+              name: algo-sentry-sentry-secret
+              key: "key"
+        - name: C_FORCE_ROOT
+          value: "true"
+        - name: POSTGRES_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: algo-sentry-postgresql
+              key: postgresql-password
+        
+        volumeMounts:
+        - mountPath: /etc/sentry
+          name: config
+          readOnly: true
+        - mountPath: /var/lib/sentry/files
+          name: sentry-data
+        resources:
+            {}
+      volumes:
+      - name: config
+        configMap:
+          name: algo-sentry-sentry
+      - name: sentry-data
+        emptyDir: {}
+---
+# Source: sentry/templates/deployment-sentry-web.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: algo-sentry-web
+  namespace: sentry
+  labels:
+    app: algo-sentry
+    chart: "sentry-17.0.0"
+    release: "algo"
+    heritage: "Helm"
+spec:
+  revisionHistoryLimit: 10
+  strategy:
+    type: RollingUpdate
+  selector:
+    matchLabels:
+        app: algo-sentry
+        release: "algo"
+        role: web
+  replicas: 1
+  template:
+    metadata:
+      annotations:
+        checksum/configYml: 44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a
+        checksum/sentryConfPy: d5f85a6a8afbc55eebe23801e1a51a0fb4c0428c9a73ef6708d8dc83e079cd49
+        checksum/config.yaml: a473f6af0de70f1d3aea10fe25d1572402a0d4380cc023b16bb43305e200cd86
+      labels:
+        app: algo-sentry
+        release: "algo"
+        role: web
+    spec:
+      affinity:
+      containers:
+      - name: sentry-web
+        image: "getsentry/sentry:22.10.0"
+        imagePullPolicy: IfNotPresent
+        command: ["sentry", "run", "web"]
+        ports:
+        - containerPort: 9000
+        env:
+        - name: SNUBA
+          value: http://algo-sentry-snuba:1218
+        - name: SENTRY_SECRET_KEY
+          valueFrom:
+            secretKeyRef:
+              name: algo-sentry-sentry-secret
+              key: "key"
+        - name: POSTGRES_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: algo-sentry-postgresql
+              key: postgresql-password
+        
+        
+        volumeMounts:
+        - mountPath: /etc/sentry
+          name: config
+          readOnly: true
+        - mountPath: /var/lib/sentry/files
+          name: sentry-data
+        livenessProbe:
+          failureThreshold: 5
+          httpGet:
+            path: /_health/
+            port: 9000
+            scheme: HTTP
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          successThreshold: 1
+          timeoutSeconds: 2
+        readinessProbe:
+          failureThreshold: 5
+          httpGet:
+            path: /_health/
+            port: 9000
+            scheme: HTTP
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          successThreshold: 1
+          timeoutSeconds: 2
+        resources:
+            {}
+      volumes:
+      - name: config
+        configMap:
+          name: algo-sentry-sentry
+      - name: sentry-data
+        persistentVolumeClaim:
+          claimName: algo-sentry-data
+---
+# Source: sentry/templates/deployment-sentry-worker.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: algo-sentry-worker
+  namespace: sentry
+  labels:
+    app: algo-sentry
+    chart: "sentry-17.0.0"
+    release: "algo"
+    heritage: "Helm"
+spec:
+  revisionHistoryLimit: 10
+  selector:
+    matchLabels:
+        app: algo-sentry
+        release: "algo"
+        role: worker
+  replicas: 3
+  template:
+    metadata:
+      annotations:
+        checksum/configYml: 44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a
+        checksum/sentryConfPy: d5f85a6a8afbc55eebe23801e1a51a0fb4c0428c9a73ef6708d8dc83e079cd49
+        checksum/config.yaml: a473f6af0de70f1d3aea10fe25d1572402a0d4380cc023b16bb43305e200cd86
+      labels:
+        app: algo-sentry
+        release: "algo"
+        role: worker
+    spec:
+      affinity:
+      containers:
+      - name: sentry-worker
+        image: "getsentry/sentry:22.10.0"
+        imagePullPolicy: IfNotPresent
+        command: ["sentry"]
+        args:
+          - "run"
+          - "worker"
+        env:
+        - name: SNUBA
+          value: http://algo-sentry-snuba:1218
+        - name: SENTRY_SECRET_KEY
+          valueFrom:
+            secretKeyRef:
+              name: algo-sentry-sentry-secret
+              key: "key"
+        - name: C_FORCE_ROOT
+          value: "true"
+        - name: POSTGRES_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: algo-sentry-postgresql
+              key: postgresql-password
+        
+        volumeMounts:
+        - mountPath: /etc/sentry
+          name: config
+          readOnly: true
+        - mountPath: /var/lib/sentry/files
+          name: sentry-data
+        resources:
+            {}
+      volumes:
+      - name: config
+        configMap:
+          name: algo-sentry-sentry
+      - name: sentry-data
+        emptyDir: {}
+---
+# Source: sentry/templates/deployment-snuba-api.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: algo-sentry-snuba-api
+  namespace: sentry
+  labels:
+    app: sentry
+    chart: "sentry-17.0.0"
+    release: "algo"
+    heritage: "Helm"
+spec:
+  revisionHistoryLimit: 10
+  selector:
+    matchLabels:
+      app: algo-sentry
+      release: "algo"
+      role: snuba-api
+  replicas: 1
+  template:
+    metadata:
+      annotations:
+        checksum/snubaSettingsPy: d5f85a6a8afbc55eebe23801e1a51a0fb4c0428c9a73ef6708d8dc83e079cd49
+        checksum/config.yaml: 32fdb2214a5927b56e936dce12a12ba4c3cb019471f420ff60368976afd90fdc
+      labels:
+        app: algo-sentry
+        release: "algo"
+        role: snuba-api
+    spec:
+      affinity:
+      containers:
+      - name: sentry-snuba
+        image: "getsentry/snuba:22.10.0"
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 1218
+        env:
+        - name: SNUBA_SETTINGS
+          value: /etc/snuba/settings.py
+        - name: DEFAULT_BROKERS
+          value: "algo-kafka:9092"
+        envFrom:
+        - secretRef:
+            name: algo-sentry-snuba-env
+        volumeMounts:
+        - mountPath: /etc/snuba
+          name: config
+          readOnly: true
+        livenessProbe:
+          failureThreshold: 5
+          httpGet:
+            path: /
+            port: 1218
+            scheme: HTTP
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          successThreshold: 1
+          timeoutSeconds: 2
+        readinessProbe:
+          failureThreshold: 10
+          httpGet:
+            path: /
+            port: 1218
+            scheme: HTTP
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          successThreshold: 1
+          timeoutSeconds: 2
+        resources:
+            {}
+      volumes:
+        - name: config
+          configMap:
+            name: algo-sentry-snuba
+---
+# Source: sentry/charts/clickhouse/templates/statefulset-clickhouse.yaml
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: algo-clickhouse
+  namespace: sentry
+  labels:
+    app.kubernetes.io/name: clickhouse
+    app.kubernetes.io/instance: algo
+    app.kubernetes.io/managed-by: Helm
+spec:
+  replicas: 3
+  podManagementPolicy: Parallel
+  updateStrategy:
+    type: RollingUpdate
+  serviceName: algo-clickhouse-headless
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: clickhouse
+      app.kubernetes.io/instance: algo
+  template:
+    metadata:
+      annotations:
+        checksum/config: 7b1d50ab63c86b563f4c330c630aa5f5b9c38a36cc40232ba418b80ec3b98797
+      labels:
+        app.kubernetes.io/name: clickhouse
+        app.kubernetes.io/instance: algo
+    spec:
+      initContainers:
+      - name: init
+        image: busybox:1.31.0
+        imagePullPolicy: IfNotPresent
+        args:
+        - /bin/sh
+        - -c
+        - |
+          mkdir -p /etc/clickhouse-server/metrica.d
+      containers:
+      - name: algo-clickhouse
+        image: yandex/clickhouse-server:20.8.19.4
+        imagePullPolicy: IfNotPresent
+        command:
+          - /bin/bash
+          - -c
+          - export SHARD=${HOSTNAME##*-} && /entrypoint.sh
+        ports:
+        - name: http-port
+          containerPort: 8123
+        - name: tcp-port
+          containerPort: 9000
+        - name: inter-http-port
+          containerPort: 9009
+        livenessProbe:
+          tcpSocket:
+            port: 9000
+          initialDelaySeconds: 30
+          periodSeconds: 30
+          timeoutSeconds: 5
+          failureThreshold: 3
+          successThreshold: 1
+        readinessProbe:
+          tcpSocket:
+            port: 9000
+          initialDelaySeconds: 30
+          periodSeconds: 30
+          timeoutSeconds: 5
+          failureThreshold: 3
+          successThreshold: 1
+        volumeMounts:
+        - name: algo-clickhouse-data
+          mountPath: /var/lib/clickhouse
+        - name: algo-clickhouse-logs
+          mountPath: /var/log/clickhouse-server
+        - name: algo-clickhouse-config
+          mountPath: /etc/clickhouse-server/config.d
+        - name: algo-clickhouse-metrica
+          mountPath: /etc/clickhouse-server/metrica.d
+        - name: algo-clickhouse-users
+          mountPath: /etc/clickhouse-server/users.d
+      volumes:
+      - name: algo-clickhouse-data
+        persistentVolumeClaim:
+          claimName: algo-clickhouse-data
+      - name: algo-clickhouse-logs
+        emptyDir: {}
+      - name: algo-clickhouse-config
+        configMap:
+          name: algo-clickhouse-config
+          items:
+          - key: config.xml
+            path: config.xml
+      - name: algo-clickhouse-metrica
+        configMap:
+          name: algo-clickhouse-metrica
+          items:
+          - key: metrica.xml
+            path: metrica.xml
+      - name: algo-clickhouse-users
+        configMap:
+          name: algo-clickhouse-users
+          items:
+          - key: users.xml
+            path: users.xml
+  volumeClaimTemplates:
+  - metadata:
+      name: algo-clickhouse-data
+      labels:
+        app.kubernetes.io/name: clickhouse-data
+        app.kubernetes.io/instance: algo-data
+        app.kubernetes.io/managed-by: Helm
+    spec:
+      accessModes:
+      - "ReadWriteOnce"
+      resources:
+        requests:
+          storage: "30Gi"
+---
+# Source: sentry/charts/kafka/charts/zookeeper/templates/statefulset.yaml
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: algo-zookeeper
+  namespace: sentry
+  labels:
+    app.kubernetes.io/name: zookeeper
+    helm.sh/chart: zookeeper-9.1.5
+    app.kubernetes.io/instance: algo
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/component: zookeeper
+    role: zookeeper
+spec:
+  replicas: 1
+  podManagementPolicy: Parallel
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: zookeeper
+      app.kubernetes.io/instance: algo
+      app.kubernetes.io/component: zookeeper
+  serviceName: algo-zookeeper-headless
+  updateStrategy:
+    rollingUpdate: {}
+    type: RollingUpdate
+  template:
+    metadata:
+      annotations:
+      labels:
+        app.kubernetes.io/name: zookeeper
+        helm.sh/chart: zookeeper-9.1.5
+        app.kubernetes.io/instance: algo
+        app.kubernetes.io/managed-by: Helm
+        app.kubernetes.io/component: zookeeper
+    spec:
+      serviceAccountName: default
+      
+      affinity:
+        podAffinity:
+          
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - podAffinityTerm:
+                labelSelector:
+                  matchLabels:
+                    app.kubernetes.io/name: zookeeper
+                    app.kubernetes.io/instance: algo
+                    app.kubernetes.io/component: zookeeper
+                namespaces:
+                  - "sentry"
+                topologyKey: kubernetes.io/hostname
+              weight: 1
+        nodeAffinity:
+          
+      securityContext:
+        fsGroup: 1001
+      initContainers:
+      containers:
+        - name: zookeeper
+          image: docker.io/bitnami/zookeeper:3.8.0-debian-10-r63
+          imagePullPolicy: "IfNotPresent"
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 1001
+          command:
+            - /scripts/setup.sh
+          resources:
+            limits: {}
+            requests:
+              cpu: 250m
+              memory: 256Mi
+          env:
+            - name: BITNAMI_DEBUG
+              value: "false"
+            - name: ZOO_DATA_LOG_DIR
+              value: ""
+            - name: ZOO_PORT_NUMBER
+              value: "2181"
+            - name: ZOO_TICK_TIME
+              value: "2000"
+            - name: ZOO_INIT_LIMIT
+              value: "10"
+            - name: ZOO_SYNC_LIMIT
+              value: "5"
+            - name: ZOO_PRE_ALLOC_SIZE
+              value: "65536"
+            - name: ZOO_SNAPCOUNT
+              value: "100000"
+            - name: ZOO_MAX_CLIENT_CNXNS
+              value: "60"
+            - name: ZOO_4LW_COMMANDS_WHITELIST
+              value: "srvr, mntr, ruok"
+            - name: ZOO_LISTEN_ALLIPS_ENABLED
+              value: "no"
+            - name: ZOO_AUTOPURGE_INTERVAL
+              value: "0"
+            - name: ZOO_AUTOPURGE_RETAIN_COUNT
+              value: "3"
+            - name: ZOO_MAX_SESSION_TIMEOUT
+              value: "40000"
+            - name: ZOO_SERVERS
+              value: algo-zookeeper-0.algo-zookeeper-headless.sentry.svc.cluster.local:2888:3888::1 
+            - name: ZOO_ENABLE_AUTH
+              value: "no"
+            - name: ZOO_HEAP_SIZE
+              value: "1024"
+            - name: ZOO_LOG_LEVEL
+              value: "ERROR"
+            - name: ALLOW_ANONYMOUS_LOGIN
+              value: "yes"
+            - name: POD_NAME
+              valueFrom:
+                fieldRef:
+                  apiVersion: v1
+                  fieldPath: metadata.name
+          ports:
+            - name: client
+              containerPort: 2181
+            - name: follower
+              containerPort: 2888
+            - name: election
+              containerPort: 3888
+          livenessProbe:
+            failureThreshold: 6
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            successThreshold: 1
+            timeoutSeconds: 5
+            exec:
+              command: ['/bin/bash', '-c', 'echo "ruok" | timeout 2 nc -w 2 localhost 2181 | grep imok']
+          readinessProbe:
+            failureThreshold: 6
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            successThreshold: 1
+            timeoutSeconds: 5
+            exec:
+              command: ['/bin/bash', '-c', 'echo "ruok" | timeout 2 nc -w 2 localhost 2181 | grep imok']
+          volumeMounts:
+            - name: scripts
+              mountPath: /scripts/setup.sh
+              subPath: setup.sh
+            - name: data
+              mountPath: /bitnami/zookeeper
+      volumes:
+        - name: scripts
+          configMap:
+            name: algo-zookeeper-scripts
+            defaultMode: 0755
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+        annotations:
+      spec:
+        accessModes:
+          - "ReadWriteOnce"
+        resources:
+          requests:
+            storage: "8Gi"
+---
+# Source: sentry/charts/kafka/templates/statefulset.yaml
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: algo-kafka
+  namespace: sentry
+  labels:
+    app.kubernetes.io/name: kafka
+    helm.sh/chart: kafka-16.3.2
+    app.kubernetes.io/instance: algo
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/component: kafka
+spec:
+  podManagementPolicy: Parallel
+  replicas: 3
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: kafka
+      app.kubernetes.io/instance: algo
+      app.kubernetes.io/component: kafka
+  serviceName: algo-kafka-headless
+  updateStrategy:
+    rollingUpdate: {}
+    type: RollingUpdate
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: kafka
+        helm.sh/chart: kafka-16.3.2
+        app.kubernetes.io/instance: algo
+        app.kubernetes.io/managed-by: Helm
+        app.kubernetes.io/component: kafka
+      annotations:
+    spec:
+      
+      hostNetwork: false
+      hostIPC: false
+      affinity:
+        podAffinity:
+          
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - podAffinityTerm:
+                labelSelector:
+                  matchLabels:
+                    app.kubernetes.io/name: kafka
+                    app.kubernetes.io/instance: algo
+                    app.kubernetes.io/component: kafka
+                namespaces:
+                  - "sentry"
+                topologyKey: kubernetes.io/hostname
+              weight: 1
+        nodeAffinity:
+          
+      securityContext:
+        fsGroup: 1001
+      serviceAccountName: algo-kafka
+      containers:
+        - name: kafka
+          image: docker.io/bitnami/kafka:3.1.1-debian-10-r6
+          imagePullPolicy: "IfNotPresent"
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 1001
+          command:
+            - /scripts/setup.sh
+          env:
+            - name: BITNAMI_DEBUG
+              value: "false"
+            - name: MY_POD_IP
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.podIP
+            - name: MY_POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: KAFKA_CFG_ZOOKEEPER_CONNECT
+              value: "algo-zookeeper"
+            - name: KAFKA_INTER_BROKER_LISTENER_NAME
+              value: "INTERNAL"
+            - name: KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP
+              value: "INTERNAL:PLAINTEXT,CLIENT:PLAINTEXT"
+            - name: KAFKA_CFG_LISTENERS
+              value: "INTERNAL://:9093,CLIENT://:9092"
+            - name: KAFKA_CFG_ADVERTISED_LISTENERS
+              value: "INTERNAL://$(MY_POD_NAME).algo-kafka-headless.sentry.svc.cluster.local:9093,CLIENT://$(MY_POD_NAME).algo-kafka-headless.sentry.svc.cluster.local:9092"
+            - name: ALLOW_PLAINTEXT_LISTENER
+              value: "yes"
+            - name: KAFKA_ZOOKEEPER_PROTOCOL
+              value: PLAINTEXT
+            - name: KAFKA_VOLUME_DIR
+              value: "/bitnami/kafka"
+            - name: KAFKA_LOG_DIR
+              value: "/opt/bitnami/kafka/logs"
+            - name: KAFKA_CFG_DELETE_TOPIC_ENABLE
+              value: "false"
+            - name: KAFKA_CFG_AUTO_CREATE_TOPICS_ENABLE
+              value: "true"
+            - name: KAFKA_HEAP_OPTS
+              value: "-Xmx1024m -Xms1024m"
+            - name: KAFKA_CFG_LOG_FLUSH_INTERVAL_MESSAGES
+              value: "10000"
+            - name: KAFKA_CFG_LOG_FLUSH_INTERVAL_MS
+              value: "1000"
+            - name: KAFKA_CFG_LOG_RETENTION_BYTES
+              value: "1073741824"
+            - name: KAFKA_CFG_LOG_RETENTION_CHECK_INTERVALS_MS
+              value: "300000"
+            - name: KAFKA_CFG_LOG_RETENTION_HOURS
+              value: "168"
+            - name: KAFKA_CFG_MESSAGE_MAX_BYTES
+              value: "50000000"
+            - name: KAFKA_CFG_LOG_SEGMENT_BYTES
+              value: "1073741824"
+            - name: KAFKA_CFG_LOG_DIRS
+              value: "/bitnami/kafka/data"
+            - name: KAFKA_CFG_DEFAULT_REPLICATION_FACTOR
+              value: "3"
+            - name: KAFKA_CFG_OFFSETS_TOPIC_REPLICATION_FACTOR
+              value: "3"
+            - name: KAFKA_CFG_TRANSACTION_STATE_LOG_REPLICATION_FACTOR
+              value: "3"
+            - name: KAFKA_CFG_TRANSACTION_STATE_LOG_MIN_ISR
+              value: "3"
+            - name: KAFKA_CFG_NUM_IO_THREADS
+              value: "8"
+            - name: KAFKA_CFG_NUM_NETWORK_THREADS
+              value: "3"
+            - name: KAFKA_CFG_NUM_PARTITIONS
+              value: "1"
+            - name: KAFKA_CFG_NUM_RECOVERY_THREADS_PER_DATA_DIR
+              value: "1"
+            - name: KAFKA_CFG_SOCKET_RECEIVE_BUFFER_BYTES
+              value: "102400"
+            - name: KAFKA_CFG_SOCKET_REQUEST_MAX_BYTES
+              value: "50000000"
+            - name: KAFKA_CFG_SOCKET_SEND_BUFFER_BYTES
+              value: "102400"
+            - name: KAFKA_CFG_ZOOKEEPER_CONNECTION_TIMEOUT_MS
+              value: "6000"
+            - name: KAFKA_CFG_AUTHORIZER_CLASS_NAME
+              value: ""
+            - name: KAFKA_CFG_ALLOW_EVERYONE_IF_NO_ACL_FOUND
+              value: "true"
+            - name: KAFKA_CFG_SUPER_USERS
+              value: "User:admin"
+          ports:
+            - name: kafka-client
+              containerPort: 9092
+            - name: kafka-internal
+              containerPort: 9093
+          livenessProbe:
+            failureThreshold: 3
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            successThreshold: 1
+            timeoutSeconds: 5
+            tcpSocket:
+              port: kafka-client
+          readinessProbe:
+            failureThreshold: 6
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            successThreshold: 1
+            timeoutSeconds: 5
+            tcpSocket:
+              port: kafka-client
+          resources:
+            limits: {}
+            requests: {}
+          volumeMounts:
+            - name: data
+              mountPath: /bitnami/kafka
+            - name: logs
+              mountPath: /opt/bitnami/kafka/logs
+            - name: scripts
+              mountPath: /scripts/setup.sh
+              subPath: setup.sh
+      volumes:
+        - name: scripts
+          configMap:
+            name: algo-kafka-scripts
+            defaultMode: 0755
+        - name: logs
+          emptyDir: {}
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+      spec:
+        accessModes:
+          - "ReadWriteOnce"
+        resources:
+          requests:
+            storage: "8Gi"
+---
+# Source: sentry/charts/postgresql/templates/statefulset.yaml
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: algo-sentry-postgresql
+  labels:
+    app.kubernetes.io/name: sentry-postgresql
+    helm.sh/chart: postgresql-10.16.2
+    app.kubernetes.io/instance: algo
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/component: primary
+  annotations:
+  namespace: sentry
+spec:
+  serviceName: algo-sentry-postgresql-headless
+  replicas: 1
+  updateStrategy:
+    type: RollingUpdate
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: sentry-postgresql
+      app.kubernetes.io/instance: algo
+      role: primary
+  template:
+    metadata:
+      name: algo-sentry-postgresql
+      labels:
+        app.kubernetes.io/name: sentry-postgresql
+        helm.sh/chart: postgresql-10.16.2
+        app.kubernetes.io/instance: algo
+        app.kubernetes.io/managed-by: Helm
+        role: primary
+        app.kubernetes.io/component: primary
+    spec:      
+      affinity:
+        podAffinity:
+          
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - podAffinityTerm:
+                labelSelector:
+                  matchLabels:
+                    app.kubernetes.io/name: sentry-postgresql
+                    app.kubernetes.io/instance: algo
+                    app.kubernetes.io/component: primary
+                namespaces:
+                  - "sentry"
+                topologyKey: kubernetes.io/hostname
+              weight: 1
+        nodeAffinity:
+          
+      securityContext:
+        fsGroup: 1001
+      automountServiceAccountToken: false
+      containers:
+        - name: algo-sentry-postgresql
+          image: docker.io/bitnami/postgresql:11.14.0-debian-10-r28
+          imagePullPolicy: "IfNotPresent"
+          resources:
+            requests:
+              cpu: 250m
+              memory: 256Mi
+          securityContext:
+            runAsUser: 1001
+          env:
+            - name: BITNAMI_DEBUG
+              value: "false"
+            - name: POSTGRESQL_PORT_NUMBER
+              value: "5432"
+            - name: POSTGRESQL_VOLUME_DIR
+              value: "/bitnami/postgresql"
+            - name: PGDATA
+              value: "/bitnami/postgresql/data"
+            - name: POSTGRES_USER
+              value: "postgres"
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: algo-sentry-postgresql
+                  key: postgresql-password
+            - name: POSTGRES_DB
+              value: "sentry"
+            - name: POSTGRESQL_ENABLE_LDAP
+              value: "no"
+            - name: POSTGRESQL_ENABLE_TLS
+              value: "no"
+            - name: POSTGRESQL_LOG_HOSTNAME
+              value: "false"
+            - name: POSTGRESQL_LOG_CONNECTIONS
+              value: "false"
+            - name: POSTGRESQL_LOG_DISCONNECTIONS
+              value: "false"
+            - name: POSTGRESQL_PGAUDIT_LOG_CATALOG
+              value: "off"
+            - name: POSTGRESQL_CLIENT_MIN_MESSAGES
+              value: "error"
+            - name: POSTGRESQL_SHARED_PRELOAD_LIBRARIES
+              value: "pgaudit"
+          ports:
+            - name: tcp-postgresql
+              containerPort: 5432
+          livenessProbe:
+            exec:
+              command:
+                - /bin/sh
+                - -c
+                - exec pg_isready -U "postgres" -d "dbname=sentry" -h 127.0.0.1 -p 5432
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
+            successThreshold: 1
+            failureThreshold: 6
+          readinessProbe:
+            exec:
+              command:
+                - /bin/sh
+                - -c
+                - -e
+                - |
+                  exec pg_isready -U "postgres" -d "dbname=sentry" -h 127.0.0.1 -p 5432
+                  [ -f /opt/bitnami/postgresql/tmp/.initialized ] || [ -f /bitnami/postgresql/.initialized ]
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            timeoutSeconds: 5
+            successThreshold: 1
+            failureThreshold: 6
+          volumeMounts:
+            - name: dshm
+              mountPath: /dev/shm
+            - name: data
+              mountPath: /bitnami/postgresql
+              subPath: 
+      volumes:
+        - name: dshm
+          emptyDir:
+            medium: Memory
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+      spec:
+        accessModes:
+          - "ReadWriteOnce"
+        resources:
+          requests:
+            storage: "8Gi"
+---
+# Source: sentry/charts/rabbitmq/templates/statefulset.yaml
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: algo-rabbitmq
+  namespace: sentry
+  labels:
+    app.kubernetes.io/name: rabbitmq
+    helm.sh/chart: rabbitmq-8.32.2
+    app.kubernetes.io/instance: algo
+    app.kubernetes.io/managed-by: Helm
+spec:
+  serviceName: algo-rabbitmq-headless
+  podManagementPolicy: OrderedReady
+  replicas: 3
+  updateStrategy:
+    type: RollingUpdate
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: rabbitmq
+      app.kubernetes.io/instance: algo
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: rabbitmq
+        helm.sh/chart: rabbitmq-8.32.2
+        app.kubernetes.io/instance: algo
+        app.kubernetes.io/managed-by: Helm
+      annotations:
+        checksum/config: 8e152b8b911796e6dc912ce46a9f96986d29b85783d207947073801131f2c141
+        checksum/secret: 3d095ba90623988cc91d9c1a40994f5b318ce82fdf5be57710c37f0101c163bb
+    spec:
+      
+      serviceAccountName: algo-rabbitmq
+      affinity:
+        podAffinity:
+          
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - podAffinityTerm:
+                labelSelector:
+                  matchLabels:
+                    app.kubernetes.io/name: rabbitmq
+                    app.kubernetes.io/instance: algo
+                namespaces:
+                  - "sentry"
+                topologyKey: kubernetes.io/hostname
+              weight: 1
+        nodeAffinity:
+          
+      securityContext:
+        fsGroup: 1001
+        runAsUser: 1001
+      terminationGracePeriodSeconds: 120
+      containers:
+        - name: rabbitmq
+          image: docker.io/bitnami/rabbitmq:3.9.16-debian-10-r0
+          imagePullPolicy: "IfNotPresent"
+          env:
+            - name: BITNAMI_DEBUG
+              value: "false"
+            - name: MY_POD_IP
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.podIP
+            - name: MY_POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: MY_POD_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            - name: K8S_SERVICE_NAME
+              value: "algo-rabbitmq-headless"
+            - name: K8S_ADDRESS_TYPE
+              value: hostname
+            - name: RABBITMQ_FORCE_BOOT
+              value: "yes"
+            - name: RABBITMQ_NODE_NAME
+              value: "rabbit@$(MY_POD_NAME).$(K8S_SERVICE_NAME).$(MY_POD_NAMESPACE).svc.cluster.local"
+            - name: K8S_HOSTNAME_SUFFIX
+              value: ".$(K8S_SERVICE_NAME).$(MY_POD_NAMESPACE).svc.cluster.local"
+            - name: RABBITMQ_MNESIA_DIR
+              value: "/bitnami/rabbitmq/mnesia/$(RABBITMQ_NODE_NAME)"
+            - name: RABBITMQ_LDAP_ENABLE
+              value: "no"
+            - name: RABBITMQ_LOGS
+              value: "-"
+            - name: RABBITMQ_ULIMIT_NOFILES
+              value: "65536"
+            - name: RABBITMQ_USE_LONGNAME
+              value: "true"
+            - name: RABBITMQ_ERL_COOKIE
+              valueFrom:
+                secretKeyRef:
+                  name: algo-rabbitmq
+                  key: rabbitmq-erlang-cookie
+            - name: RABBITMQ_CLUSTER_REBALANCE
+              value: "true"
+            - name: RABBITMQ_LOAD_DEFINITIONS
+              value: "yes"
+            - name: RABBITMQ_DEFINITIONS_FILE
+              value: "/app/load_definition.json"
+            - name: RABBITMQ_SECURE_PASSWORD
+              value: "yes"
+            - name: RABBITMQ_USERNAME
+              value: "guest"
+            - name: RABBITMQ_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: algo-rabbitmq
+                  key: rabbitmq-password
+            - name: RABBITMQ_PLUGINS
+              value: "rabbitmq_management, rabbitmq_peer_discovery_k8s, rabbitmq_auth_backend_ldap"
+          ports:
+            - name: amqp
+              containerPort: 5672
+            - name: dist
+              containerPort: 25672
+            - name: stats
+              containerPort: 15672
+            - name: epmd
+              containerPort: 4369
+          livenessProbe:
+            exec:
+              command:
+                - /bin/bash
+                - -ec
+                - rabbitmq-diagnostics -q ping
+            initialDelaySeconds: 120
+            periodSeconds: 30
+            timeoutSeconds: 20
+            successThreshold: 1
+            failureThreshold: 6
+          readinessProbe:
+            exec:
+              command:
+                - /bin/bash
+                - -ec
+                - rabbitmq-diagnostics -q check_running && rabbitmq-diagnostics -q check_local_alarms
+            initialDelaySeconds: 10
+            periodSeconds: 30
+            timeoutSeconds: 20
+            successThreshold: 1
+            failureThreshold: 3
+          lifecycle:
+            preStop:
+              exec:
+                command:
+                  - /bin/bash
+                  - -ec
+                  - |
+                    if [[ -f /opt/bitnami/scripts/rabbitmq/nodeshutdown.sh ]]; then
+                        /opt/bitnami/scripts/rabbitmq/nodeshutdown.sh -t "120" -d  "false"
+                    else
+                        rabbitmqctl stop_app
+                    fi
+          resources:
+            limits: {}
+            requests: {}
+          volumeMounts:
+            - name: configuration
+              mountPath: /bitnami/rabbitmq/conf
+            - name: data
+              mountPath: /bitnami/rabbitmq/mnesia
+            - name: load-definition-volume
+              mountPath: /app
+              readOnly: true
+      volumes:
+        - name: configuration
+          configMap:
+            name: algo-rabbitmq-config
+            items:
+              - key: rabbitmq.conf
+                path: rabbitmq.conf
+        - name: load-definition-volume
+          secret:
+            secretName: "load-definition"
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+        labels:
+          app.kubernetes.io/name: rabbitmq
+          app.kubernetes.io/instance: algo
+      spec:
+        accessModes:
+          - "ReadWriteOnce"
+        resources:
+          requests:
+            storage: "8Gi"
+---
+# Source: sentry/charts/redis/templates/master/application.yaml
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: algo-sentry-redis-master
+  namespace: sentry
+  labels:
+    app.kubernetes.io/name: sentry-redis
+    helm.sh/chart: redis-16.12.1
+    app.kubernetes.io/instance: algo
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/component: master
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: sentry-redis
+      app.kubernetes.io/instance: algo
+      app.kubernetes.io/component: master
+  serviceName: algo-sentry-redis-headless
+  updateStrategy:
+    rollingUpdate: {}
+    type: RollingUpdate
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: sentry-redis
+        helm.sh/chart: redis-16.12.1
+        app.kubernetes.io/instance: algo
+        app.kubernetes.io/managed-by: Helm
+        app.kubernetes.io/component: master
+      annotations:
+        checksum/configmap: 2347e687a861d1a4984f40750e5a299cacbed81154da2883eb189b5c7a98786b
+        checksum/health: e9adeae56b21d612189cb410d31eba8b5fa49307cfcec8a896f3a4fb9f796150
+        checksum/scripts: 2d2f3e78d70f194b2bfb3830249f1f04ec8380e23e4aadc0ac824c0b44d34890
+        checksum/secret: e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+    spec:
+      
+      securityContext:
+        fsGroup: 1001
+      serviceAccountName: algo-sentry-redis
+      affinity:
+        podAffinity:
+          
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - podAffinityTerm:
+                labelSelector:
+                  matchLabels:
+                    app.kubernetes.io/name: sentry-redis
+                    app.kubernetes.io/instance: algo
+                    app.kubernetes.io/component: master
+                namespaces:
+                  - "sentry"
+                topologyKey: kubernetes.io/hostname
+              weight: 1
+        nodeAffinity:
+          
+      terminationGracePeriodSeconds: 30
+      containers:
+        - name: redis
+          image: docker.io/bitnami/redis:6.2.7-debian-11-r3
+          imagePullPolicy: "IfNotPresent"
+          securityContext:
+            runAsUser: 1001
+          command:
+            - /bin/bash
+          args:
+            - -c
+            - /opt/bitnami/scripts/start-scripts/start-master.sh
+          env:
+            - name: BITNAMI_DEBUG
+              value: "false"
+            - name: REDIS_REPLICATION_MODE
+              value: master
+            - name: ALLOW_EMPTY_PASSWORD
+              value: "yes"
+            - name: REDIS_TLS_ENABLED
+              value: "no"
+            - name: REDIS_PORT
+              value: "6379"
+          ports:
+            - name: redis
+              containerPort: 6379
+          livenessProbe:
+            initialDelaySeconds: 20
+            periodSeconds: 5
+            # One second longer than command timeout should prevent generation of zombie processes.
+            timeoutSeconds: 6
+            successThreshold: 1
+            failureThreshold: 5
+            exec:
+              command:
+                - sh
+                - -c
+                - /health/ping_liveness_local.sh 5
+          readinessProbe:
+            initialDelaySeconds: 20
+            periodSeconds: 5
+            timeoutSeconds: 2
+            successThreshold: 1
+            failureThreshold: 5
+            exec:
+              command:
+                - sh
+                - -c
+                - /health/ping_readiness_local.sh 1
+          resources:
+            limits: {}
+            requests: {}
+          volumeMounts:
+            - name: start-scripts
+              mountPath: /opt/bitnami/scripts/start-scripts
+            - name: health
+              mountPath: /health
+            - name: redis-data
+              mountPath: /data
+              subPath: 
+            - name: config
+              mountPath: /opt/bitnami/redis/mounted-etc
+            - name: redis-tmp-conf
+              mountPath: /opt/bitnami/redis/etc/
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        - name: start-scripts
+          configMap:
+            name: algo-sentry-redis-scripts
+            defaultMode: 0755
+        - name: health
+          configMap:
+            name: algo-sentry-redis-health
+            defaultMode: 0755
+        - name: config
+          configMap:
+            name: algo-sentry-redis-configuration
+        - name: redis-tmp-conf
+          emptyDir: {}
+        - name: tmp
+          emptyDir: {}
+  volumeClaimTemplates:
+    - metadata:
+        name: redis-data
+        labels:
+          app.kubernetes.io/name: sentry-redis
+          app.kubernetes.io/instance: algo
+          app.kubernetes.io/component: master
+      spec:
+        accessModes:
+          - "ReadWriteOnce"
+        resources:
+          requests:
+            storage: "8Gi"
+---
+# Source: sentry/charts/redis/templates/replicas/statefulset.yaml
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: algo-sentry-redis-replicas
+  namespace: sentry
+  labels:
+    app.kubernetes.io/name: sentry-redis
+    helm.sh/chart: redis-16.12.1
+    app.kubernetes.io/instance: algo
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/component: replica
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: sentry-redis
+      app.kubernetes.io/instance: algo
+      app.kubernetes.io/component: replica
+  serviceName: algo-sentry-redis-headless
+  updateStrategy:
+    rollingUpdate: {}
+    type: RollingUpdate
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: sentry-redis
+        helm.sh/chart: redis-16.12.1
+        app.kubernetes.io/instance: algo
+        app.kubernetes.io/managed-by: Helm
+        app.kubernetes.io/component: replica
+      annotations:
+        checksum/configmap: 2347e687a861d1a4984f40750e5a299cacbed81154da2883eb189b5c7a98786b
+        checksum/health: e9adeae56b21d612189cb410d31eba8b5fa49307cfcec8a896f3a4fb9f796150
+        checksum/scripts: 2d2f3e78d70f194b2bfb3830249f1f04ec8380e23e4aadc0ac824c0b44d34890
+        checksum/secret: e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+    spec:
+      
+      securityContext:
+        fsGroup: 1001
+      serviceAccountName: algo-sentry-redis
+      affinity:
+        podAffinity:
+          
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - podAffinityTerm:
+                labelSelector:
+                  matchLabels:
+                    app.kubernetes.io/name: sentry-redis
+                    app.kubernetes.io/instance: algo
+                    app.kubernetes.io/component: replica
+                namespaces:
+                  - "sentry"
+                topologyKey: kubernetes.io/hostname
+              weight: 1
+        nodeAffinity:
+          
+      terminationGracePeriodSeconds: 30
+      containers:
+        - name: redis
+          image: docker.io/bitnami/redis:6.2.7-debian-11-r3
+          imagePullPolicy: "IfNotPresent"
+          securityContext:
+            runAsUser: 1001
+          command:
+            - /bin/bash
+          args:
+            - -c
+            - /opt/bitnami/scripts/start-scripts/start-replica.sh
+          env:
+            - name: BITNAMI_DEBUG
+              value: "false"
+            - name: REDIS_REPLICATION_MODE
+              value: slave
+            - name: REDIS_MASTER_HOST
+              value: algo-sentry-redis-master-0.algo-sentry-redis-headless.sentry.svc.cluster.local
+            - name: REDIS_MASTER_PORT_NUMBER
+              value: "6379"
+            - name: ALLOW_EMPTY_PASSWORD
+              value: "yes"
+            - name: REDIS_TLS_ENABLED
+              value: "no"
+            - name: REDIS_PORT
+              value: "6379"
+          ports:
+            - name: redis
+              containerPort: 6379
+          startupProbe:
+            failureThreshold: 22
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            successThreshold: 1
+            timeoutSeconds: 5
+            tcpSocket:
+              port: redis
+          livenessProbe:
+            initialDelaySeconds: 20
+            periodSeconds: 5
+            timeoutSeconds: 6
+            successThreshold: 1
+            failureThreshold: 5
+            exec:
+              command:
+                - sh
+                - -c
+                - /health/ping_liveness_local_and_master.sh 5
+          readinessProbe:
+            initialDelaySeconds: 20
+            periodSeconds: 5
+            timeoutSeconds: 2
+            successThreshold: 1
+            failureThreshold: 5
+            exec:
+              command:
+                - sh
+                - -c
+                - /health/ping_readiness_local_and_master.sh 1
+          resources:
+            limits: {}
+            requests: {}
+          volumeMounts:
+            - name: start-scripts
+              mountPath: /opt/bitnami/scripts/start-scripts
+            - name: health
+              mountPath: /health
+            - name: redis-data
+              mountPath: /data
+              subPath: 
+            - name: config
+              mountPath: /opt/bitnami/redis/mounted-etc
+            - name: redis-tmp-conf
+              mountPath: /opt/bitnami/redis/etc
+      volumes:
+        - name: start-scripts
+          configMap:
+            name: algo-sentry-redis-scripts
+            defaultMode: 0755
+        - name: health
+          configMap:
+            name: algo-sentry-redis-health
+            defaultMode: 0755
+        - name: config
+          configMap:
+            name: algo-sentry-redis-configuration
+        - name: redis-tmp-conf
+          emptyDir: {}
+  volumeClaimTemplates:
+    - metadata:
+        name: redis-data
+        labels:
+          app.kubernetes.io/name: sentry-redis
+          app.kubernetes.io/instance: algo
+          app.kubernetes.io/component: replica
+      spec:
+        accessModes:
+          - "ReadWriteOnce"
+        resources:
+          requests:
+            storage: "8Gi"
+---
+# Source: sentry/charts/zookeeper/templates/statefulset.yaml
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: algo-zookeeper-clickhouse
+  namespace: sentry
+  labels:
+    app.kubernetes.io/name: zookeeper-clickhouse
+    helm.sh/chart: zookeeper-9.0.0
+    app.kubernetes.io/instance: algo
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/component: zookeeper
+    role: zookeeper
+spec:
+  replicas: 3
+  podManagementPolicy: Parallel
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: zookeeper-clickhouse
+      app.kubernetes.io/instance: algo
+      app.kubernetes.io/component: zookeeper
+  serviceName: algo-zookeeper-clickhouse-headless
+  updateStrategy:
+    rollingUpdate: {}
+    type: RollingUpdate
+  template:
+    metadata:
+      annotations:
+      labels:
+        app.kubernetes.io/name: zookeeper-clickhouse
+        helm.sh/chart: zookeeper-9.0.0
+        app.kubernetes.io/instance: algo
+        app.kubernetes.io/managed-by: Helm
+        app.kubernetes.io/component: zookeeper
+    spec:
+      serviceAccountName: default
+      
+      affinity:
+        podAffinity:
+          
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - podAffinityTerm:
+                labelSelector:
+                  matchLabels:
+                    app.kubernetes.io/name: zookeeper-clickhouse
+                    app.kubernetes.io/instance: algo
+                    app.kubernetes.io/component: zookeeper
+                namespaces:
+                  - "sentry"
+                topologyKey: kubernetes.io/hostname
+              weight: 1
+        nodeAffinity:
+          
+      securityContext:
+        fsGroup: 1001
+      initContainers:
+      containers:
+        - name: zookeeper
+          image: docker.io/bitnami/zookeeper:3.8.0-debian-10-r0
+          imagePullPolicy: "IfNotPresent"
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 1001
+          command:
+            - /scripts/setup.sh
+          resources:
+            limits: {}
+            requests:
+              cpu: 250m
+              memory: 256Mi
+          env:
+            - name: BITNAMI_DEBUG
+              value: "false"
+            - name: ZOO_DATA_LOG_DIR
+              value: ""
+            - name: ZOO_PORT_NUMBER
+              value: "2181"
+            - name: ZOO_TICK_TIME
+              value: "2000"
+            - name: ZOO_INIT_LIMIT
+              value: "10"
+            - name: ZOO_SYNC_LIMIT
+              value: "5"
+            - name: ZOO_PRE_ALLOC_SIZE
+              value: "65536"
+            - name: ZOO_SNAPCOUNT
+              value: "100000"
+            - name: ZOO_MAX_CLIENT_CNXNS
+              value: "60"
+            - name: ZOO_4LW_COMMANDS_WHITELIST
+              value: "srvr, mntr, ruok"
+            - name: ZOO_LISTEN_ALLIPS_ENABLED
+              value: "no"
+            - name: ZOO_AUTOPURGE_INTERVAL
+              value: "0"
+            - name: ZOO_AUTOPURGE_RETAIN_COUNT
+              value: "3"
+            - name: ZOO_MAX_SESSION_TIMEOUT
+              value: "40000"
+            - name: ZOO_SERVERS
+              value: algo-zookeeper-clickhouse-0.algo-zookeeper-clickhouse-headless.sentry.svc.cluster.local:2888:3888::1 algo-zookeeper-clickhouse-1.algo-zookeeper-clickhouse-headless.sentry.svc.cluster.local:2888:3888::2 algo-zookeeper-clickhouse-2.algo-zookeeper-clickhouse-headless.sentry.svc.cluster.local:2888:3888::3 
+            - name: ZOO_ENABLE_AUTH
+              value: "no"
+            - name: ZOO_HEAP_SIZE
+              value: "1024"
+            - name: ZOO_LOG_LEVEL
+              value: "ERROR"
+            - name: ALLOW_ANONYMOUS_LOGIN
+              value: "yes"
+            - name: POD_NAME
+              valueFrom:
+                fieldRef:
+                  apiVersion: v1
+                  fieldPath: metadata.name
+          ports:
+            - name: client
+              containerPort: 2181
+            - name: follower
+              containerPort: 2888
+            - name: election
+              containerPort: 3888
+          livenessProbe:
+            failureThreshold: 6
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            successThreshold: 1
+            timeoutSeconds: 5
+            exec:
+              command: ['/bin/bash', '-c', 'echo "ruok" | timeout 2 nc -w 2 localhost 2181 | grep imok']
+          readinessProbe:
+            failureThreshold: 6
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            successThreshold: 1
+            timeoutSeconds: 5
+            exec:
+              command: ['/bin/bash', '-c', 'echo "ruok" | timeout 2 nc -w 2 localhost 2181 | grep imok']
+          volumeMounts:
+            - name: scripts
+              mountPath: /scripts/setup.sh
+              subPath: setup.sh
+            - name: data
+              mountPath: /bitnami/zookeeper
+      volumes:
+        - name: scripts
+          configMap:
+            name: algo-zookeeper-clickhouse-scripts
+            defaultMode: 0755
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+        annotations:
+      spec:
+        accessModes:
+          - "ReadWriteOnce"
+        resources:
+          requests:
+            storage: "8Gi"
+---
+# Source: sentry/templates/cronjob-sentry-cleanup.yaml
+apiVersion: batch/v1beta1
+kind: CronJob
+metadata:
+  name: algo-sentry-sentry-cleanup
+  namespace: sentry
+  labels:
+    app: algo-sentry
+    chart: "sentry-17.0.0"
+    release: "algo"
+    heritage: "Helm"
+spec:
+  schedule: "0 0 * * *"
+  successfulJobsHistoryLimit: 5
+  failedJobsHistoryLimit: 5
+  concurrencyPolicy: "Allow"
+  jobTemplate:
+    spec:
+      activeDeadlineSeconds: 100
+      template:
+        metadata:
+          annotations:
+            checksum/configYml: 44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a
+            checksum/sentryConfPy: d5f85a6a8afbc55eebe23801e1a51a0fb4c0428c9a73ef6708d8dc83e079cd49
+            checksum/config.yaml: a473f6af0de70f1d3aea10fe25d1572402a0d4380cc023b16bb43305e200cd86
+          labels:
+            app: algo-sentry
+            release: "algo"
+        spec:
+          affinity:
+          containers:
+          - name: sentry-sentry-cleanup
+            image: "getsentry/sentry:22.10.0"
+            imagePullPolicy: IfNotPresent
+            command: ["sentry"]
+            args:
+              - "cleanup"
+              - "--days"
+              - "90"
+            env:
+            - name: SNUBA
+              value: http://algo-sentry-snuba:1218
+            - name: C_FORCE_ROOT
+              value: "true"
+            - name: SENTRY_SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: algo-sentry-sentry-secret
+                  key: "key"
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: algo-sentry-postgresql
+                  key: postgresql-password
+            volumeMounts:
+            - mountPath: /etc/sentry
+              name: config
+              readOnly: true
+            - mountPath: /var/lib/sentry/files
+              name: sentry-data
+            resources:
+              null
+          restartPolicy: Never
+          volumes:
+          - name: config
+            configMap:
+              name: algo-sentry-sentry
+          - name: sentry-data
+            emptyDir: {}
+---
+# Source: sentry/templates/cronjob-snuba-cleanup-errors.yaml
+apiVersion: batch/v1beta1
+kind: CronJob
+metadata:
+  name: algo-sentry-snuba-cleanup-errors
+  namespace: sentry
+  labels:
+    app: algo-sentry
+    chart: "sentry-17.0.0"
+    release: "algo"
+    heritage: "Helm"
+spec:
+  schedule: "0 * * * *"
+  successfulJobsHistoryLimit: 5
+  failedJobsHistoryLimit: 
+  concurrencyPolicy: "Allow"
+  jobTemplate:
+    spec:
+      activeDeadlineSeconds: 100
+      template:
+        metadata:
+          annotations:
+            checksum/snubaSettingsPy: d5f85a6a8afbc55eebe23801e1a51a0fb4c0428c9a73ef6708d8dc83e079cd49
+            checksum/config.yaml: 32fdb2214a5927b56e936dce12a12ba4c3cb019471f420ff60368976afd90fdc
+          labels:
+            app: algo-sentry
+            release: "algo"
+        spec:
+          affinity:
+          containers:
+          - name: sentry-snuba-cleanup-errors
+            image: "getsentry/snuba:22.10.0"
+            imagePullPolicy: IfNotPresent
+            command:
+                - "snuba"
+                - "cleanup"
+                - "--storage"
+                - "errors"
+                - "--dry-run"
+                - "False"
+                - "--clickhouse-host"
+                - "algo-clickhouse"
+                - "--clickhouse-port"
+                - "9000"
+            env:
+              - name: SNUBA_SETTINGS
+                value: /etc/snuba/settings.py
+            envFrom:
+                - secretRef:
+                      name: algo-sentry-snuba-env
+            volumeMounts:
+                - mountPath: /etc/snuba
+                  name: config
+                  readOnly: true
+            resources:
+              null
+          restartPolicy: Never
+          volumes:
+            - name: config
+              configMap:
+                name: algo-sentry-snuba
+---
+# Source: sentry/templates/cronjob-snuba-cleanup-transactions.yaml
+apiVersion: batch/v1beta1
+kind: CronJob
+metadata:
+  name: algo-sentry-snuba-cleanup-transactions
+  namespace: sentry
+  labels:
+    app: algo-sentry
+    chart: "sentry-17.0.0"
+    release: "algo"
+    heritage: "Helm"
+spec:
+  schedule: "0 * * * *"
+  successfulJobsHistoryLimit: 5
+  failedJobsHistoryLimit: 5
+  concurrencyPolicy: "Allow"
+  jobTemplate:
+    spec:
+      activeDeadlineSeconds: 100
+      template:
+        metadata:
+          annotations:
+            checksum/snubaSettingsPy: d5f85a6a8afbc55eebe23801e1a51a0fb4c0428c9a73ef6708d8dc83e079cd49
+            checksum/config.yaml: 32fdb2214a5927b56e936dce12a12ba4c3cb019471f420ff60368976afd90fdc
+          labels:
+            app: algo-sentry
+            release: "algo"
+        spec:
+          affinity:
+          containers:
+          - name: sentry-snuba-cleanup-errors
+            image: "getsentry/snuba:22.10.0"
+            imagePullPolicy: IfNotPresent
+            command:
+                - "snuba"
+                - "cleanup"
+                - "--storage"
+                - "transactions"
+                - "--dry-run"
+                - "False"
+                - "--clickhouse-host"
+                - "algo-clickhouse"
+                - "--clickhouse-port"
+                - "9000"
+            env:
+              - name: SNUBA_SETTINGS
+                value: /etc/snuba/settings.py
+            envFrom:
+                - secretRef:
+                      name: algo-sentry-snuba-env
+            volumeMounts:
+                - mountPath: /etc/snuba
+                  name: config
+                  readOnly: true
+            resources:
+              null
+          restartPolicy: Never
+          volumes:
+            - name: config
+              configMap:
+                name: algo-sentry-snuba
+---
+# Source: sentry/templates/hooks/sentry-secret-create.yaml
+apiVersion: v1
+kind: Secret
+metadata:
+  name: algo-sentry-sentry-secret
+  namespace: sentry
+  labels:
+    app: sentry
+    chart: "sentry-17.0.0"
+    release: "algo"
+    heritage: "Helm"
+  annotations:
+    "helm.sh/hook": "pre-install"
+    "helm.sh/hook-weight": "3"
+type: Opaque
+data:
+  key: "cng2d1FTRjltSExPR204blZHUDZIb3h0MmdCM1U5MEt0bzlPaFpZdEVORXNVbzJEb1M="
+---
+# Source: sentry/templates/deployment-relay.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: algo-sentry-relay
+  namespace: sentry
+  labels:
+    app: algo-sentry
+    chart: "sentry-17.0.0"
+    release: "algo"
+    heritage: "Helm"
+    app.kubernetes.io/managed-by: "Helm"
+  annotations:
+    meta.helm.sh/release-name: "algo"
+    meta.helm.sh/release-namespace: sentry
+    "helm.sh/hook": "post-install,post-upgrade"
+    "helm.sh/hook-weight": "25"
+spec:
+  selector:
+    matchLabels:
+      app: algo-sentry
+      release: "algo"
+      role: relay
+  replicas: 1
+  revisionHistoryLimit: 10
+  template:
+    metadata:
+      annotations:
+        checksum/relay: 8074a66c015a8309dc9bdef7524b89bb223749847663f454012dba4e7ed06cc3
+        checksum/config.yaml: 8fab488d3106bf2537b0638b735d432de9dde9d1565a42ad1f9e631f7a0e0cd8
+      labels:
+        app: algo-sentry
+        release: "algo"
+        role: relay
+    spec:
+      affinity:
+      initContainers:
+        - name: sentry-relay-init
+          image: "getsentry/relay:22.10.0"
+          imagePullPolicy: IfNotPresent
+          args:
+            - "credentials"
+            - "generate"
+          resources:
+            {}
+          env:
+            - name: RELAY_PORT
+              value: '3000'
+          volumeMounts:
+            - name: credentials
+              mountPath: /work/.relay
+            - name: config
+              mountPath: /work/.relay/config.yml
+              subPath: config.yml
+              readOnly: true
+      containers:
+      - name: sentry-relay
+        image: "getsentry/relay:22.10.0"
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 3000
+        env:
+        - name: RELAY_PORT
+          value: '3000'
+        volumeMounts:
+          - name: credentials
+            mountPath: /work/.relay
+          - name: config
+            mountPath: /work/.relay/config.yml
+            subPath: config.yml
+            readOnly: true
+        livenessProbe:
+          failureThreshold: 5
+          httpGet:
+            path: /api/relay/healthcheck/live/
+            port: 3000
+            scheme: HTTP
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          successThreshold: 1
+          timeoutSeconds: 2
+        readinessProbe:
+          failureThreshold: 5
+          httpGet:
+            path: /api/relay/healthcheck/ready/
+            port: 3000
+            scheme: HTTP
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          successThreshold: 1
+          timeoutSeconds: 2
+        resources:
+            {}
+      volumes:
+      - name: config
+        configMap:
+          name: algo-sentry-relay
+          defaultMode: 0644
+      - name: credentials
+        emptyDir: {}
+---
+# Source: sentry/templates/deployment-sentry-ingest-consumer.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  namespace: sentry
+  name: algo-sentry-ingest-consumer
+  labels:
+    app: algo-sentry
+    chart: "sentry-17.0.0"
+    release: "algo"
+    heritage: "Helm"
+    app.kubernetes.io/managed-by: "Helm"
+  annotations:
+    meta.helm.sh/release-name: "algo"
+    meta.helm.sh/release-namespace: sentry
+    "helm.sh/hook": "post-install,post-upgrade"
+    "helm.sh/hook-weight": "10"
+spec:
+  revisionHistoryLimit: 10
+  selector:
+    matchLabels:
+      app: algo-sentry
+      release: "algo"
+      role: ingest-consumer
+  replicas: 1
+  template:
+    metadata:
+      annotations:
+        checksum/configYml: 44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a
+        checksum/sentryConfPy: d5f85a6a8afbc55eebe23801e1a51a0fb4c0428c9a73ef6708d8dc83e079cd49
+        checksum/config.yaml: a473f6af0de70f1d3aea10fe25d1572402a0d4380cc023b16bb43305e200cd86
+      labels:
+        app: algo-sentry
+        release: "algo"
+        role: ingest-consumer
+    spec:
+      affinity:
+      containers:
+      - name: sentry-ingest-consumer
+        image: "getsentry/sentry:22.10.0"
+        imagePullPolicy: IfNotPresent
+        command: ["sentry"]
+        args:
+          - "run"
+          - "ingest-consumer"
+          - "--all-consumer-types"
+        env:
+        - name: SNUBA
+          value: http://algo-sentry-snuba:1218
+        - name: C_FORCE_ROOT
+          value: "true"
+        - name: SENTRY_SECRET_KEY
+          valueFrom:
+            secretKeyRef:
+              name: algo-sentry-sentry-secret
+              key: "key"
+        - name: POSTGRES_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: algo-sentry-postgresql
+              key: postgresql-password
+        
+        volumeMounts:
+        - mountPath: /etc/sentry
+          name: config
+          readOnly: true
+        - mountPath: /var/lib/sentry/files
+          name: sentry-data
+        resources:
+            {}
+      volumes:
+      - name: config
+        configMap:
+          name: algo-sentry-sentry
+      - name: sentry-data
+        emptyDir: {}
+---
+# Source: sentry/templates/deployment-sentry-post-process-forwarder-errors.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: algo-sentry-post-process-forward-errors
+  namespace: sentry
+  labels:
+    app: sentry
+    chart: "sentry-17.0.0"
+    release: "algo"
+    heritage: "Helm"
+    app.kubernetes.io/managed-by: "Helm"
+  annotations:
+    meta.helm.sh/release-name: "algo"
+    meta.helm.sh/release-namespace: sentry
+    "helm.sh/hook": "post-install,post-upgrade"
+    "helm.sh/hook-weight": "10"
+spec:
+  revisionHistoryLimit: 10
+  selector:
+    matchLabels:
+        app: sentry
+        release: "algo"
+        role: sentry-post-process-forward-errors
+  replicas: 1
+  template:
+    metadata:
+      annotations:
+        checksum/configYml: 44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a
+        checksum/sentryConfPy: d5f85a6a8afbc55eebe23801e1a51a0fb4c0428c9a73ef6708d8dc83e079cd49
+        checksum/config.yaml: a473f6af0de70f1d3aea10fe25d1572402a0d4380cc023b16bb43305e200cd86
+      labels:
+        app: sentry
+        release: "algo"
+        role: sentry-post-process-forward-errors
+    spec:
+      affinity:
+      containers:
+      - name: sentry-post-process-forward-errors
+        image: "getsentry/sentry:22.10.0"
+        imagePullPolicy: IfNotPresent
+        command: ["sentry"]
+        args:
+          - "run"
+          - "post-process-forwarder"
+          - "--commit-batch-size"
+          - "1"
+          - "--entity"
+          - "errors"
+        env:
+        - name: SNUBA
+          value: http://algo-sentry-snuba:1218
+        - name: SENTRY_SECRET_KEY
+          valueFrom:
+            secretKeyRef:
+              name: algo-sentry-sentry-secret
+              key: "key"
+        - name: POSTGRES_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: algo-sentry-postgresql
+              key: postgresql-password
+        
+        volumeMounts:
+        - mountPath: /etc/sentry
+          name: config
+          readOnly: true
+        - mountPath: /var/lib/sentry/files
+          name: sentry-data
+        resources:
+            {}
+      volumes:
+      - name: config
+        configMap:
+          name: algo-sentry-sentry
+      - name: sentry-data
+        emptyDir: {}
+---
+# Source: sentry/templates/deployment-sentry-post-process-forwarder-transactions.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: algo-sentry-post-process-forward-transactions
+  namespace: sentry
+  labels:
+    app: sentry
+    chart: "sentry-17.0.0"
+    release: "algo"
+    heritage: "Helm"
+    app.kubernetes.io/managed-by: "Helm"
+  annotations:
+    meta.helm.sh/release-name: "algo"
+    meta.helm.sh/release-namespace: sentry
+    "helm.sh/hook": "post-install,post-upgrade"
+    "helm.sh/hook-weight": "10"
+spec:
+  revisionHistoryLimit: 10
+  selector:
+    matchLabels:
+        app: sentry
+        release: "algo"
+        role: sentry-post-process-forward-transactions
+  replicas: 1
+  template:
+    metadata:
+      annotations:
+        checksum/configYml: 44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a
+        checksum/sentryConfPy: d5f85a6a8afbc55eebe23801e1a51a0fb4c0428c9a73ef6708d8dc83e079cd49
+        checksum/config.yaml: a473f6af0de70f1d3aea10fe25d1572402a0d4380cc023b16bb43305e200cd86
+      labels:
+        app: sentry
+        release: "algo"
+        role: sentry-post-process-forward-transactions
+    spec:
+      affinity:
+      containers:
+      - name: sentry-post-process-forward-transactions
+        image: "getsentry/sentry:22.10.0"
+        imagePullPolicy: IfNotPresent
+        command: ["sentry"]
+        args:
+          - "run"
+          - "post-process-forwarder"
+          - "--commit-batch-size"
+          - "1"
+          - "--entity"
+          - "transactions"
+          - "--commit-log-topic=snuba-transactions-commit-log"
+          - "--synchronize-commit-group"
+          - "transactions_group"
+        env:
+        - name: SNUBA
+          value: http://algo-sentry-snuba:1218
+        - name: SENTRY_SECRET_KEY
+          valueFrom:
+            secretKeyRef:
+              name: algo-sentry-sentry-secret
+              key: "key"
+        - name: POSTGRES_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: algo-sentry-postgresql
+              key: postgresql-password
+        
+        volumeMounts:
+        - mountPath: /etc/sentry
+          name: config
+          readOnly: true
+        - mountPath: /var/lib/sentry/files
+          name: sentry-data
+        resources:
+            {}
+      volumes:
+      - name: config
+        configMap:
+          name: algo-sentry-sentry
+      - name: sentry-data
+        emptyDir: {}
+---
+# Source: sentry/templates/deployment-sentry-subscription-consumer-events.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: algo-sentry-subscription-consumer-events
+  namespace: sentry
+  labels:
+    app: sentry
+    chart: "sentry-17.0.0"
+    release: "algo"
+    heritage: "Helm"
+    app.kubernetes.io/managed-by: "Helm"
+  annotations:
+    meta.helm.sh/release-name: "algo"
+    meta.helm.sh/release-namespace: sentry
+    "helm.sh/hook": "post-install,post-upgrade"
+    "helm.sh/hook-weight": "10"
+spec:
+  revisionHistoryLimit: 10
+  selector:
+    matchLabels:
+        app: sentry
+        release: "algo"
+        role: sentry-subscription-consumer-events
+  replicas: 1
+  template:
+    metadata:
+      annotations:
+        checksum/configYml: 44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a
+        checksum/sentryConfPy: d5f85a6a8afbc55eebe23801e1a51a0fb4c0428c9a73ef6708d8dc83e079cd49
+        checksum/config.yaml: a473f6af0de70f1d3aea10fe25d1572402a0d4380cc023b16bb43305e200cd86
+      labels:
+        app: sentry
+        release: "algo"
+        role: sentry-subscription-consumer-events
+    spec:
+      affinity:
+      containers:
+      - name: sentry-subscription-consumer-events
+        image: "getsentry/sentry:22.10.0"
+        imagePullPolicy: IfNotPresent
+        command: ["sentry"]
+        args:
+          - "run"
+          - "query-subscription-consumer"
+          - "--topic"
+          - "events-subscription-results"
+          - "--commit-batch-size"
+          - "1"
+        env:
+        - name: SNUBA
+          value: http://algo-sentry-snuba:1218
+        - name: SENTRY_SECRET_KEY
+          valueFrom:
+            secretKeyRef:
+              name: algo-sentry-sentry-secret
+              key: "key"
+        - name: POSTGRES_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: algo-sentry-postgresql
+              key: postgresql-password
+        
+        volumeMounts:
+        - mountPath: /etc/sentry
+          name: config
+          readOnly: true
+        - mountPath: /var/lib/sentry/files
+          name: sentry-data
+        resources:
+            {}
+      volumes:
+      - name: config
+        configMap:
+          name: algo-sentry-sentry
+      - name: sentry-data
+        emptyDir: {}
+---
+# Source: sentry/templates/deployment-sentry-subscription-consumer-transactions.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: algo-sentry-subscription-consumer-transactions
+  namespace: sentry
+  labels:
+    app: sentry
+    chart: "sentry-17.0.0"
+    release: "algo"
+    heritage: "Helm"
+    app.kubernetes.io/managed-by: "Helm"
+  annotations:
+    meta.helm.sh/release-name: "algo"
+    meta.helm.sh/release-namespace: sentry
+    "helm.sh/hook": "post-install,post-upgrade"
+    "helm.sh/hook-weight": "10"
+spec:
+  revisionHistoryLimit: 10
+  selector:
+    matchLabels:
+        app: sentry
+        release: "algo"
+        role: sentry-subscription-consumer-transactions
+  replicas: 1
+  template:
+    metadata:
+      annotations:
+        checksum/configYml: 44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a
+        checksum/sentryConfPy: d5f85a6a8afbc55eebe23801e1a51a0fb4c0428c9a73ef6708d8dc83e079cd49
+        checksum/config.yaml: a473f6af0de70f1d3aea10fe25d1572402a0d4380cc023b16bb43305e200cd86
+      labels:
+        app: sentry
+        release: "algo"
+        role: sentry-subscription-consumer-transactions
+    spec:
+      affinity:
+      containers:
+      - name: sentry-subscription-consumer-transactions
+        image: "getsentry/sentry:22.10.0"
+        imagePullPolicy: IfNotPresent
+        command: ["sentry"]
+        args:
+          - "run"
+          - "query-subscription-consumer"
+          - "--topic"
+          - "transactions-subscription-results"
+          - "--commit-batch-size"
+          - "1"
+        env:
+        - name: SNUBA
+          value: http://algo-sentry-snuba:1218
+        - name: SENTRY_SECRET_KEY
+          valueFrom:
+            secretKeyRef:
+              name: algo-sentry-sentry-secret
+              key: "key"
+        - name: POSTGRES_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: algo-sentry-postgresql
+              key: postgresql-password
+        
+        volumeMounts:
+        - mountPath: /etc/sentry
+          name: config
+          readOnly: true
+        - mountPath: /var/lib/sentry/files
+          name: sentry-data
+        resources:
+            {}
+      volumes:
+      - name: config
+        configMap:
+          name: algo-sentry-sentry
+      - name: sentry-data
+        emptyDir: {}
+---
+# Source: sentry/templates/deployment-snuba-consumer.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: algo-sentry-snuba-consumer
+  namespace: sentry
+  labels:
+    app: algo-sentry
+    chart: "sentry-17.0.0"
+    release: "algo"
+    heritage: "Helm"
+    app.kubernetes.io/managed-by: "Helm"
+  annotations:
+    meta.helm.sh/release-name: "algo"
+    meta.helm.sh/release-namespace: sentry
+    "helm.sh/hook": "post-install,post-upgrade"
+    "helm.sh/hook-weight": "10"
+spec:
+  revisionHistoryLimit: 10
+  selector:
+    matchLabels:
+        app: algo-sentry
+        release: "algo"
+        role: snuba-consumer
+  replicas: 1
+  template:
+    metadata:
+      annotations:
+        checksum/snubaSettingsPy: d5f85a6a8afbc55eebe23801e1a51a0fb4c0428c9a73ef6708d8dc83e079cd49
+        checksum/config.yaml: 32fdb2214a5927b56e936dce12a12ba4c3cb019471f420ff60368976afd90fdc
+      labels:
+        app: algo-sentry
+        release: "algo"
+        role: snuba-consumer
+    spec:
+      affinity:
+      containers:
+      - name: sentry-snuba
+        image: "getsentry/snuba:22.10.0"
+        imagePullPolicy: IfNotPresent
+        command:
+          - "snuba"
+          - "consumer"
+          - "--storage"
+          - "errors"
+          - "--auto-offset-reset"
+          - "earliest"
+          - "--max-batch-time-ms"
+          - "750"
+        ports:
+        - containerPort: 1218
+        env:
+        - name: SNUBA_SETTINGS
+          value: /etc/snuba/settings.py
+        - name: DEFAULT_BROKERS
+          value: "algo-kafka:9092"
+        envFrom:
+        - secretRef:
+            name: algo-sentry-snuba-env
+        volumeMounts:
+        - mountPath: /etc/snuba
+          name: config
+          readOnly: true
+        resources:
+            {}
+      volumes:
+        - name: config
+          configMap:
+            name: algo-sentry-snuba
+---
+# Source: sentry/templates/deployment-snuba-outcomes-consumer.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: algo-sentry-snuba-outcomes-consumer
+  namespace: sentry
+  labels:
+    app: algo-sentry
+    chart: "sentry-17.0.0"
+    release: "algo"
+    heritage: "Helm"
+    app.kubernetes.io/managed-by: "Helm"
+  annotations:
+    meta.helm.sh/release-name: "algo"
+    meta.helm.sh/release-namespace: sentry
+    "helm.sh/hook": "post-install,post-upgrade"
+    "helm.sh/hook-weight": "17"
+spec:
+  revisionHistoryLimit: 10
+  selector:
+    matchLabels:
+        app: algo-sentry
+        release: "algo"
+        role: snuba-outcomes-consumer
+  replicas: 1
+  template:
+    metadata:
+      annotations:
+        checksum/snubaSettingsPy: d5f85a6a8afbc55eebe23801e1a51a0fb4c0428c9a73ef6708d8dc83e079cd49
+        checksum/config.yaml: 32fdb2214a5927b56e936dce12a12ba4c3cb019471f420ff60368976afd90fdc
+      labels:
+        app: algo-sentry
+        release: "algo"
+        role: snuba-outcomes-consumer
+    spec:
+      affinity:
+      containers:
+      - name: sentry-snuba
+        image: "getsentry/snuba:22.10.0"
+        imagePullPolicy: IfNotPresent
+        command:
+          - "snuba"
+          - "consumer"
+          - "--storage"
+          - "outcomes_raw"
+          - "--auto-offset-reset"
+          - "earliest"
+          - "--max-batch-size"
+          - "3"
+        ports:
+        - containerPort: 1218
+        env:
+        - name: SNUBA_SETTINGS
+          value: /etc/snuba/settings.py
+        - name: DEFAULT_BROKERS
+          value: "algo-kafka:9092"
+        envFrom:
+        - secretRef:
+            name: algo-sentry-snuba-env
+        volumeMounts:
+        - mountPath: /etc/snuba
+          name: config
+          readOnly: true
+        resources:
+            {}
+      volumes:
+        - name: config
+          configMap:
+            name: algo-sentry-snuba
+---
+# Source: sentry/templates/deployment-snuba-replacer.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  namespace: sentry
+  name: algo-sentry-snuba-replacer
+  labels:
+    app: algo-sentry
+    chart: "sentry-17.0.0"
+    release: "algo"
+    heritage: "Helm"
+    app.kubernetes.io/managed-by: "Helm"
+  annotations:
+    meta.helm.sh/release-name: "algo"
+    meta.helm.sh/release-namespace: sentry
+    "helm.sh/hook": "post-install,post-upgrade"
+    "helm.sh/hook-weight": "18"
+spec:
+  revisionHistoryLimit: 10
+  selector:
+    matchLabels:
+        app: algo-sentry
+        release: "algo"
+        role: snuba-replacer
+  replicas: 1
+  template:
+    metadata:
+      annotations:
+        checksum/snubaSettingsPy: d5f85a6a8afbc55eebe23801e1a51a0fb4c0428c9a73ef6708d8dc83e079cd49
+        checksum/config.yaml: 32fdb2214a5927b56e936dce12a12ba4c3cb019471f420ff60368976afd90fdc
+      labels:
+        app: algo-sentry
+        release: "algo"
+        role: snuba-replacer
+    spec:
+      affinity:
+      containers:
+      - name: sentry-snuba
+        image: "getsentry/snuba:22.10.0"
+        imagePullPolicy: IfNotPresent
+        command:
+          - "snuba"
+          - "replacer"
+          - "--storage"
+          - "errors"
+          - "--auto-offset-reset"
+          - "earliest"
+          - "--max-batch-size"
+          - "3"
+        ports:
+        - containerPort: 1218
+        env:
+        - name: SNUBA_SETTINGS
+          value: /etc/snuba/settings.py
+        - name: DEFAULT_BROKERS
+          value: "algo-kafka:9092"
+        envFrom:
+        - secretRef:
+            name: algo-sentry-snuba-env
+        volumeMounts:
+        - mountPath: /etc/snuba
+          name: config
+          readOnly: true
+        resources:
+            {}
+      volumes:
+        - name: config
+          configMap:
+            name: algo-sentry-snuba
+---
+# Source: sentry/templates/deployment-snuba-sessions-consumer.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: algo-sentry-sessions-consumer
+  namespace: sentry
+  labels:
+    app: algo-sentry
+    chart: "sentry-17.0.0"
+    release: "algo"
+    heritage: "Helm"
+    app.kubernetes.io/managed-by: "Helm"
+  annotations:
+    meta.helm.sh/release-name: "algo"
+    meta.helm.sh/release-namespace: sentry
+    "helm.sh/hook": "post-install,post-upgrade"
+    "helm.sh/hook-weight": "16"
+spec:
+  revisionHistoryLimit: 10
+  selector:
+    matchLabels:
+        app: algo-sentry
+        release: "algo"
+        role: sessions-consumer
+  replicas: 1
+  template:
+    metadata:
+      annotations:
+        checksum/snubaSettingsPy: d5f85a6a8afbc55eebe23801e1a51a0fb4c0428c9a73ef6708d8dc83e079cd49
+        checksum/config.yaml: 32fdb2214a5927b56e936dce12a12ba4c3cb019471f420ff60368976afd90fdc
+      labels:
+        app: algo-sentry
+        release: "algo"
+        role: sessions-consumer
+    spec:
+      affinity:
+      containers:
+      - name: sentry-snuba
+        image: "getsentry/snuba:22.10.0"
+        imagePullPolicy: IfNotPresent
+        command:
+          - "snuba"
+          - "consumer"
+          - "--storage"
+          - "sessions_raw"
+          - "--auto-offset-reset"
+          - "earliest"
+          - "--max-batch-time-ms"
+          - "750"
+        ports:
+        - containerPort: 1218
+        env:
+        - name: SNUBA_SETTINGS
+          value: /etc/snuba/settings.py
+        - name: DEFAULT_BROKERS
+          value: "algo-kafka:9092"
+        envFrom:
+        - secretRef:
+            name: algo-sentry-snuba-env
+        volumeMounts:
+        - mountPath: /etc/snuba
+          name: config
+          readOnly: true
+        resources:
+            {}
+      volumes:
+        - name: config
+          configMap:
+            name: algo-sentry-snuba
+---
+# Source: sentry/templates/deployment-snuba-subscription-consumer-events.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: algo-sentry-snuba-subscription-consumer-events
+  namespace: sentry
+  labels:
+    app: algo-sentry
+    chart: "sentry-17.0.0"
+    release: "algo"
+    heritage: "Helm"
+    app.kubernetes.io/managed-by: "Helm"
+  annotations:
+    meta.helm.sh/release-name: "algo"
+    meta.helm.sh/release-namespace: sentry
+    "helm.sh/hook": "post-install,post-upgrade"
+    "helm.sh/hook-weight": "18"
+spec:
+  revisionHistoryLimit: 10
+  selector:
+    matchLabels:
+        app: algo-sentry
+        release: "algo"
+        role: snuba-subscription-consumer-events
+  replicas: 1
+  template:
+    metadata:
+      annotations:
+        checksum/snubaSettingsPy: d5f85a6a8afbc55eebe23801e1a51a0fb4c0428c9a73ef6708d8dc83e079cd49
+        checksum/config.yaml: 32fdb2214a5927b56e936dce12a12ba4c3cb019471f420ff60368976afd90fdc
+      labels:
+        app: algo-sentry
+        release: "algo"
+        role: snuba-subscription-consumer-events
+    spec:
+      affinity:
+      containers:
+      - name: sentry-snuba
+        image: "getsentry/snuba:22.10.0"
+        imagePullPolicy: IfNotPresent
+        command:
+          - "snuba"
+          - "subscriptions-scheduler-executor"
+          - "--auto-offset-reset=earliest"
+          - "--dataset=events"
+          - "--entity=events"
+          - "--consumer-group=snuba-events-subscriptions-consumers"
+          - "--followed-consumer-group=snuba-consumers"
+          - "--delay-seconds=60"
+          - "--schedule-ttl=60"
+          - "--stale-threshold-seconds=900"
+        ports:
+        - containerPort: 1218
+        env:
+        - name: SNUBA_SETTINGS
+          value: /etc/snuba/settings.py
+        - name: DEFAULT_BROKERS
+          value: "algo-kafka:9092"
+        envFrom:
+        - secretRef:
+            name: algo-sentry-snuba-env
+        volumeMounts:
+        - mountPath: /etc/snuba
+          name: config
+          readOnly: true
+        resources:
+            {}
+      volumes:
+        - name: config
+          configMap:
+            name: algo-sentry-snuba
+---
+# Source: sentry/templates/deployment-snuba-subscription-consumer-transactions.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: algo-sentry-snuba-subscription-consumer-transactions
+  namespace: sentry
+  labels:
+    app: algo-sentry
+    chart: "sentry-17.0.0"
+    release: "algo"
+    heritage: "Helm"
+    app.kubernetes.io/managed-by: "Helm"
+  annotations:
+    meta.helm.sh/release-name: "algo"
+    meta.helm.sh/release-namespace: sentry
+    "helm.sh/hook": "post-install,post-upgrade"
+    "helm.sh/hook-weight": "18"
+spec:
+  revisionHistoryLimit: 10
+  selector:
+    matchLabels:
+        app: algo-sentry
+        release: "algo"
+        role: snuba-subscription-consumer-transactions
+  replicas: 1
+  template:
+    metadata:
+      annotations:
+        checksum/snubaSettingsPy: d5f85a6a8afbc55eebe23801e1a51a0fb4c0428c9a73ef6708d8dc83e079cd49
+        checksum/config.yaml: 32fdb2214a5927b56e936dce12a12ba4c3cb019471f420ff60368976afd90fdc
+      labels:
+        app: algo-sentry
+        release: "algo"
+        role: snuba-subscription-consumer-transactions
+    spec:
+      affinity:
+      containers:
+      - name: sentry-snuba
+        image: "getsentry/snuba:22.10.0"
+        imagePullPolicy: IfNotPresent
+        command:
+          - "snuba"
+          - "subscriptions-scheduler-executor"
+          - "--auto-offset-reset=earliest"
+          - "--dataset=transactions"
+          - "--entity=transactions"
+          - "--consumer-group=snuba-transactions-subscriptions-consumers"
+          - "--followed-consumer-group=transactions_group"
+          - "--delay-seconds=60"
+          - "--schedule-ttl=60"
+          - "--stale-threshold-seconds=900"
+        ports:
+        - containerPort: 1218
+        env:
+        - name: SNUBA_SETTINGS
+          value: /etc/snuba/settings.py
+        - name: DEFAULT_BROKERS
+          value: "algo-kafka:9092"
+        envFrom:
+        - secretRef:
+            name: algo-sentry-snuba-env
+        volumeMounts:
+        - mountPath: /etc/snuba
+          name: config
+          readOnly: true
+        resources:
+            {}
+      volumes:
+        - name: config
+          configMap:
+            name: algo-sentry-snuba
+---
+# Source: sentry/templates/deployment-snuba-transactions-consumer.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: algo-sentry-snuba-transactions-consumer
+  namespace: sentry
+  labels:
+    app: algo-sentry
+    chart: "sentry-17.0.0"
+    release: "algo"
+    heritage: "Helm"
+    app.kubernetes.io/managed-by: "Helm"
+  annotations:
+    meta.helm.sh/release-name: "algo"
+    meta.helm.sh/release-namespace: sentry
+    "helm.sh/hook": "post-install,post-upgrade"
+    "helm.sh/hook-weight": "12"
+spec:
+  revisionHistoryLimit: 10
+  selector:
+    matchLabels:
+        app: algo-sentry
+        release: "algo"
+        role: snuba-transactions-consumer
+  replicas: 1
+  template:
+    metadata:
+      annotations:
+        checksum/snubaSettingsPy: d5f85a6a8afbc55eebe23801e1a51a0fb4c0428c9a73ef6708d8dc83e079cd49
+        checksum/config.yaml: 32fdb2214a5927b56e936dce12a12ba4c3cb019471f420ff60368976afd90fdc
+      labels:
+        app: algo-sentry
+        release: "algo"
+        role: snuba-transactions-consumer
+    spec:
+      affinity:
+      containers:
+      - name: sentry-snuba
+        image: "getsentry/snuba:22.10.0"
+        imagePullPolicy: IfNotPresent
+        command:
+          - "snuba"
+          - "consumer"
+          - "--storage"
+          - "transactions"
+          - "--consumer-group"
+          - "transactions_group"
+          - "--auto-offset-reset"
+          - "earliest"
+          - "--max-batch-time-ms"
+          - "750"
+        ports:
+        - containerPort: 1218
+        env:
+        - name: SNUBA_SETTINGS
+          value: /etc/snuba/settings.py
+        - name: DEFAULT_BROKERS
+          value: "algo-kafka:9092"
+        envFrom:
+        - secretRef:
+            name: algo-sentry-snuba-env
+        volumeMounts:
+        - mountPath: /etc/snuba
+          name: config
+          readOnly: true
+        resources:
+            {}
+      volumes:
+        - name: config
+          configMap:
+            name: algo-sentry-snuba
+---
+# Source: sentry/templates/hooks/sentry-db-check.job.yaml
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: algo-sentry-db-check
+  namespace: sentry
+  labels:
+    app: sentry
+    chart: "sentry-17.0.0"
+    release: "algo"
+    heritage: "Helm"
+  annotations:
+    # This is what defines this resource as a hook. Without this line, the
+    # job is considered part of the release.
+    "helm.sh/hook": "post-install,post-upgrade"
+    "helm.sh/hook-delete-policy": "hook-succeeded,before-hook-creation"
+    "helm.sh/hook-weight": "-1"
+spec:
+  activeDeadlineSeconds: 100
+  template:
+    metadata:
+      name: algo-sentry-db-check
+      annotations:
+      labels:
+        app: sentry
+        release: "algo"
+    spec:
+      restartPolicy: Never
+      containers:
+      - name: db-check
+        image: subfuzion/netcat:latest
+        imagePullPolicy: IfNotPresent
+        command:
+          - /bin/sh
+          - -c
+          - |
+            echo "Checking if clickhouse is up"
+            CLICKHOUSE_STATUS=0
+            while [ $CLICKHOUSE_STATUS -eq 0 ]; do
+              CLICKHOUSE_STATUS=1
+              CLICKHOUSE_REPLICAS=3
+              i=0; while [ $i -lt $CLICKHOUSE_REPLICAS ]; do
+                CLICKHOUSE_HOST=algo-clickhouse-$i.algo-clickhouse-headless
+                if ! nc -z "$CLICKHOUSE_HOST" 9000; then
+                  CLICKHOUSE_STATUS=0
+                  echo "$CLICKHOUSE_HOST is not available yet"
+                fi
+                i=$((i+1))
+              done
+              if [ "$CLICKHOUSE_STATUS" -eq 0 ]; then
+                echo "Clickhouse not ready. Sleeping for 10s before trying again"
+                sleep 10;
+              fi
+            done
+            echo "Clickhouse is up"
+
+            echo "Checking if kafka is up"
+            KAFKA_STATUS=0
+            while [ $KAFKA_STATUS -eq 0 ]; do
+              KAFKA_STATUS=1
+              KAFKA_REPLICAS=3
+              i=0; while [ $i -lt $KAFKA_REPLICAS ]; do
+                KAFKA_HOST=algo-kafka-$i.algo-kafka-headless
+                if ! nc -z "$KAFKA_HOST" 9092; then
+                  KAFKA_STATUS=0
+                  echo "$KAFKA_HOST is not available yet"
+                fi
+                i=$((i+1))
+              done
+              if [ "$KAFKA_STATUS" -eq 0 ]; then
+                echo "Kafka not ready. Sleeping for 10s before trying again"
+                sleep 10;
+              fi
+            done
+            echo "Kafka is up"
+        env:
+        resources:
+          limits:
+            memory: 64Mi
+          requests:
+            cpu: 100m
+            memory: 64Mi
+---
+# Source: sentry/templates/hooks/sentry-db-init.job.yaml
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: algo-sentry-db-init
+  namespace: sentry
+  labels:
+    app: sentry
+    chart: "sentry-17.0.0"
+    release: "algo"
+    heritage: "Helm"
+  annotations:
+    # This is what defines this resource as a hook. Without this line, the
+    # job is considered part of the release.
+    "helm.sh/hook": "post-install,post-upgrade"
+    "helm.sh/hook-delete-policy": "hook-succeeded,before-hook-creation"
+    "helm.sh/hook-weight": "6"
+spec:
+  activeDeadlineSeconds: 100
+  template:
+    metadata:
+      name: algo-sentry-db-init
+      annotations:
+        checksum/configmap.yaml: a473f6af0de70f1d3aea10fe25d1572402a0d4380cc023b16bb43305e200cd86
+      labels:
+        app: sentry
+        release: "algo"
+    spec:
+      restartPolicy: Never
+      containers:
+      - name: db-init-job
+        image: "getsentry/sentry:22.10.0"
+        imagePullPolicy: IfNotPresent
+        command: ["sentry","upgrade","--noinput"]
+        env:
+        - name: SENTRY_SECRET_KEY
+          valueFrom:
+            secretKeyRef:
+              name: algo-sentry-sentry-secret
+              key: "key"
+        - name: POSTGRES_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: algo-sentry-postgresql
+              key: postgresql-password
+        volumeMounts:
+        - mountPath: /etc/sentry
+          name: config
+          readOnly: true
+        resources:
+          limits:
+            memory: 2048Mi
+          requests:
+            cpu: 300m
+            memory: 2048Mi
+      volumes:
+      - name: config
+        configMap:
+          name: algo-sentry-sentry
+---
+# Source: sentry/templates/hooks/snuba-db-init.job.yaml
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: algo-sentry-snuba-db-init
+  labels:
+    app: sentry
+    chart: "sentry-17.0.0"
+    release: "algo"
+    heritage: "Helm"
+  annotations:
+    # This is what defines this resource as a hook. Without this line, the
+    # job is considered part of the release.
+    "helm.sh/hook": "post-install,post-upgrade"
+    "helm.sh/hook-delete-policy": "hook-succeeded,before-hook-creation"
+    "helm.sh/hook-weight": "3"
+spec:
+  activeDeadlineSeconds: 100
+  template:
+    metadata:
+      name: algo-sentry-snuba-db-init
+      annotations:
+        checksum/snubaSettingsPy: d5f85a6a8afbc55eebe23801e1a51a0fb4c0428c9a73ef6708d8dc83e079cd49
+        checksum/config.yaml: 32fdb2214a5927b56e936dce12a12ba4c3cb019471f420ff60368976afd90fdc
+      labels:
+        app: sentry
+        release: "algo"
+    spec:
+      restartPolicy: Never
+      containers:
+      - name: snuba-init
+        image: "getsentry/snuba:22.10.0"
+        command: [snuba, bootstrap, --no-migrate, --force]
+        env:
+        - name: LOG_LEVEL
+          value: debug
+        - name: SNUBA_SETTINGS
+          value: /etc/snuba/settings.py
+        - name: DEFAULT_BROKERS
+          value: "algo-kafka:9092"
+        envFrom:
+        - secretRef:
+            name: algo-sentry-snuba-env
+        volumeMounts:
+        - mountPath: /etc/snuba
+          name: config
+          readOnly: true
+        resources:
+          limits:
+            cpu: 2000m
+            memory: 1Gi
+          requests:
+            cpu: 700m
+            memory: 1Gi
+      volumes:
+        - name: config
+          configMap:
+            name: algo-sentry-snuba
+---
+# Source: sentry/templates/hooks/snuba-migrate.job.yaml
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: algo-sentry-snuba-migrate
+  namespace: sentry
+  labels:
+    app: sentry
+    chart: "sentry-17.0.0"
+    release: "algo"
+    heritage: "Helm"
+  annotations:
+    # This is what defines this resource as a hook. Without this line, the
+    # job is considered part of the release.
+    "helm.sh/hook": "post-install,post-upgrade"
+    "helm.sh/hook-delete-policy": "hook-succeeded,before-hook-creation"
+    "helm.sh/hook-weight": "5"
+spec:
+  activeDeadlineSeconds: 100
+  template:
+    metadata:
+      name: algo-sentry-snuba-migrate
+      annotations:
+        checksum/snubaSettingsPy: d5f85a6a8afbc55eebe23801e1a51a0fb4c0428c9a73ef6708d8dc83e079cd49
+        checksum/config.yaml: 32fdb2214a5927b56e936dce12a12ba4c3cb019471f420ff60368976afd90fdc
+      labels:
+        app: sentry
+        release: "algo"
+    spec:
+      restartPolicy: Never
+      containers:
+      - name: snuba-migrate
+        image: "getsentry/snuba:22.10.0"
+        command: [snuba, migrations, migrate, --force]
+        env:
+        - name: LOG_LEVEL
+          value: debug
+        - name: SNUBA_SETTINGS
+          value: /etc/snuba/settings.py
+        - name: DEFAULT_BROKERS
+          value: "algo-kafka:9092"
+        envFrom:
+        - secretRef:
+            name: algo-sentry-snuba-env
+        volumeMounts:
+        - mountPath: /etc/snuba
+          name: config
+          readOnly: true
+        resources:
+          limits:
+            cpu: 2000m
+            memory: 1Gi
+          requests:
+            cpu: 700m
+            memory: 1Gi
+      volumes:
+        - name: config
+          configMap:
+            name: algo-sentry-snuba
+---
+# Source: sentry/templates/hooks/user-create.yaml
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: algo-sentry-user-create
+  namespace: sentry
+  labels:
+    app: sentry
+    chart: "sentry-17.0.0"
+    release: "algo"
+    heritage: "Helm"
+  annotations:
+    "helm.sh/hook": "post-install,post-upgrade"
+    "helm.sh/hook-delete-policy": "hook-succeeded,before-hook-creation"
+    "helm.sh/hook-weight": "9"
+spec:
+  activeDeadlineSeconds: 100
+  template:
+    metadata:
+      name: algo-sentry-user-create
+      annotations:
+        checksum/configmap.yaml: a473f6af0de70f1d3aea10fe25d1572402a0d4380cc023b16bb43305e200cd86
+      labels:
+        app: sentry
+        release: "algo"
+    spec:
+      restartPolicy: Never
+      containers:
+      - name: user-create-job
+        image: "getsentry/sentry:22.10.0"
+        imagePullPolicy: IfNotPresent
+        command: ["/bin/bash", "-c"]
+        # Create user but do not exit 1 when user already exists (exit code 3 from createuser command)
+        # https://docs.sentry.io/server/cli/createuser/
+        args:
+          - >
+            sentry createuser \
+              --no-input \
+              --superuser \
+              --email "admin@sentry.local" \
+              --password "$ADMIN_PASSWORD" || true; \
+            if [ $? -eq 0 ] || [ $? -eq 3 ]; then \
+              exit 0; \
+            else \
+              exit 1; \
+            fi
+        env:
+        - name: SENTRY_SECRET_KEY
+          valueFrom:
+            secretKeyRef:
+              name: algo-sentry-sentry-secret
+              key: "key"
+        - name: ADMIN_PASSWORD
+          value: "aaaa"
+        - name: POSTGRES_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: algo-sentry-postgresql
+              key: postgresql-password
+        volumeMounts:
+        - mountPath: /etc/sentry
+          name: config
+          readOnly: true
+        resources:
+          limits:
+            memory: 2048Mi
+          requests:
+            cpu: 300m
+            memory: 2048Mi
+      volumes:
+      - name: config
+        configMap:
+          name: algo-sentry-sentry

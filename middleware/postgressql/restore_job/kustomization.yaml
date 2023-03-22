@@ -1,0 +1,13 @@
+resources:
+- job.yaml
+
+namespace: dm-dev
+
+configMapGenerator:
+- name: restore-pgscripts
+  files:
+  - ./scripts/prd-pg_restore.sh
+  - ./scripts/prd-pg_roles.sh
+
+generatorOptions:
+  disableNameSuffixHash: true

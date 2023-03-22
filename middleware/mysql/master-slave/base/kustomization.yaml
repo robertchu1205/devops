@@ -1,0 +1,19 @@
+resources:
+- configmap.yaml
+- service.yaml
+- statefulset.yaml
+
+commonLabels:
+  for: cta
+
+namePrefix: cta-
+
+namespace: mysql
+
+# generatorOptions:
+#   disableNameSuffixHash: true
+
+# secretGenerator:
+# - name: mysql-auth
+#   envs:
+#   - ./auth.env

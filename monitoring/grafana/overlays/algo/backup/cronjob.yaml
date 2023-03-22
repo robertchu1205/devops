@@ -1,0 +1,41 @@
+apiVersion: batch/v1beta1
+kind: CronJob
+metadata:
+  name: algo-grafana-backup
+spec:
+  schedule: "0 6 * * *" 
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          volumes:
+          - name: own-kubeconfig
+            configMap:
+              name: own-kubeconfig
+          - name: backup-script
+            configMap:
+              name: backup-script
+              defaultMode: 0777
+          - name: backup-data
+            persistentVolumeClaim:
+              claimName: hk-office-nfs-share-monitoring
+          containers:
+          - name: algo-grafana-backup
+            image: dtzar/helm-kubectl:3.5.3
+            imagePullPolicy: IfNotPresent
+            volumeMounts:
+            - name: own-kubeconfig
+              mountPath: /root/.kube/config
+              subPath: own-kubeconfig
+            - name: backup-script
+              mountPath: /backup.sh
+              subPath: backup.sh
+            - name: backup-data
+              mountPath: /nas
+              subPath: algo-devops/grafana
+            command:
+            - /bin/sh
+            - -c
+            - /backup.sh
+            # - sleep 1d;
+          restartPolicy: OnFailure

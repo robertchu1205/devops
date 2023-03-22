@@ -1,0 +1,146 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: timescaledb-only-one
+spec:
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+      spec:
+        accessModes: [ "ReadWriteOnce" ]
+        storageClassName: vsphere-csi-sc
+        resources:
+          requests:
+            storage: 200Gi
+    # - metadata:
+    #     name: xml
+    #   spec:
+    #     accessModes: [ "ReadWriteOnce" ]
+    #     resources:
+    #       requests:
+    #         storage: 400Gi
+  replicas: 1
+  serviceName: timescaledb
+  selector:
+    matchLabels:
+      app: timescaledb
+  template:
+    metadata:
+      labels:
+        app: timescaledb
+    spec:
+      volumes:
+      - name: pg-conf-files
+        configMap:
+          name: pg-conf-files
+      # - name: hk-aliyun-nas-pvc
+      #   persistentVolumeClaim:
+      #     claimName: hk-aliyun-nas-pvc
+      - name: aws-efs
+        persistentVolumeClaim:
+          claimName: aws-efs
+      # initContainers:
+      # - name: pgbackrest
+      #   image: punkrock/pgbackrest:latest
+      #   command:
+      #   - pgbackrest restore --stanza=poddb
+      #   env:
+      #   - name: PGBACKREST_CONFIG
+      #     value: '/restore/pgbackrest.conf'
+      #   volumeMounts:
+      #   - name: pg-conf-files
+      #     mountPath: /restore
+      #   - name: data
+      #     mountPath: /restore/data
+      # - name: rewrite-conf
+      #   image: busybox:latest
+      #   imagePullPolicy: IfNotPresent
+      #   command:
+      #   - /bin/sh
+      #   - -c
+      #   - mv /tmp/postgresql.conf /var/lib/postgresql/data/ && echo moved
+      #   volumeMounts:
+      #   - name: data
+      #     subPath: data
+      #     mountPath: /var/lib/postgresql/data
+      #   - name: pg-conf-files
+      #     mountPath: /tmp/postgresql.conf
+      #     subPath: postgresql.conf
+      containers:
+      - name: db
+        image: timescale/timescaledb:2.4.0-pg12
+        args:
+        - -c
+        - max_locks_per_transaction=512
+        # command:
+        # - sh
+        # - '-c'
+        # - sleep 1d
+        env:
+        - name: POSTGRES_USER
+          value: 'postgres'
+        - name: POSTGRES_PASSWORD
+          value: 'docker'
+        - name: POSTGRES_DB
+          value: 'postgres'
+        resources:
+          # limits:
+          #   cpu: "1.5"
+          #   memory: 8Gi
+          requests:
+            cpu: "1"
+            memory: 8Gi
+        ports:
+        - name: db
+          containerPort: 5432
+        readinessProbe:
+          exec:
+            command:
+              - pg_isready
+              - '-h'
+              - /var/run/postgresql
+          initialDelaySeconds: 5
+          timeoutSeconds: 5
+          periodSeconds: 10
+          successThreshold: 1
+          failureThreshold: 6
+        livenessProbe:
+          exec:
+            command:
+              - pg_isready
+              - '-h'
+              - /var/run/postgresql
+          initialDelaySeconds: 30
+          timeoutSeconds: 5
+          periodSeconds: 10
+          successThreshold: 1
+          failureThreshold: 6
+        volumeMounts:
+        - name: aws-efs
+          mountPath: /mnt
+        # - name: hk-aliyun-nas-pvc
+        #   mountPath: /ali
+        - name: data
+          subPath: data
+          mountPath: /var/lib/postgresql/data
+        - name: data
+          subPath: postgresql-xmldata
+          mountPath: /var/lib/postgresql-xmldata
+      - name: postgres-exporter
+        image: wrouesnel/postgres_exporter:latest
+        imagePullPolicy: Always
+        ports:
+          - name: pg-exporter
+            containerPort: 9187
+            protocol: TCP
+        env:
+          - name: DATA_SOURCE_NAME
+            value: postgresql://postgres:docker@localhost:5432/postgres?sslmode=disable
+          - name: PG_EXPORTER_CONSTANT_LABELS
+            value: release=dm-dev,namespace=dm-dev
+
+# timescaledb-tune -yes
+# pg_restore -v -d postgres -U postgres /mnt/timescaledb/postgres.sql
+# psql -d postgres -U postgres < /mnt/timescaledb/roles.sql
+# chown -R postgres:postgres /var/lib/postgresql-xmldata
+# psql -U postgres -d postgres -c "Create TABLESPACE xmlspace OWNER django_admin LOCATION '/var/lib/postgresql-xmldata';"

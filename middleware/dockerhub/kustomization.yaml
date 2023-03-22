@@ -1,0 +1,26 @@
+resources:
+- ./docker-registry.yaml
+# - ./registry-ui.yaml
+- ./service.yaml
+# - ./pvc.yaml
+
+nameSuffix: -test
+namespace: docker-registry
+
+# configMapGenerator:
+# - envs:
+#   - ./conf/registry-env.conf
+#   name: docker-registry-env
+# - files:
+#   - ./conf/config.yml
+#   - ./conf/htpasswd
+#   name: docker-registry-conf
+
+# secretGenerator:
+# - files:
+#   - ./certs/domain.crt
+#   - ./certs/domain.key
+#   name: docker-registry-certs
+
+# generatorOptions:
+#   disableNameSuffixHash: true

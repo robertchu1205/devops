@@ -1,0 +1,25 @@
+resources:
+- ./../base
+- ./svc.yaml
+
+namespace: redis
+
+images:
+- name: redis
+  newTag: 7.0.4
+
+commonLabels:
+  service: qe
+  env: toc-dev
+
+namePrefix: qe-toc-dev-
+
+configMapGenerator:
+- name: redis-config
+  files:
+  - redis.conf
+  options:
+    disableNameSuffixHash: true
+
+patchesStrategicMerge:
+- ./sts-patch.yaml

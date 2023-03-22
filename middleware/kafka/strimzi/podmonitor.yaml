@@ -1,0 +1,23 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PodMonitor
+metadata:
+  name: quote-engine-toc-dev-kafka
+  namespace: monitoring
+  labels:
+    app.kubernetes.io/instance: qe-toc-dev
+    app.kubernetes.io/name: kafka-exporter
+    strimzi.io/cluster: qe-toc-dev
+    monitoring: prometheus
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/instance: qe-toc-dev
+      app.kubernetes.io/name: kafka-exporter
+      strimzi.io/cluster: qe-toc-dev
+  podMetricsEndpoints:
+  - port: tcp-prometheus
+    interval: 30s
+  namespaceSelector:
+    matchNames:
+    - kafka
+  jobLabel: .metadata.name

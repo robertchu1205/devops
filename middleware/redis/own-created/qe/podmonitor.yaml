@@ -1,0 +1,23 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PodMonitor
+metadata:
+  name: qe-toc-dev-custom-redis-standalone
+  namespace: monitoring
+  labels:
+    env: toc-dev
+    service: qe
+    app: redis-exporter
+    monitoring: prometheus
+spec:
+  selector:
+    matchLabels:
+      service: qe
+      env: toc-dev
+      app: custom-redis-standalone
+  podMetricsEndpoints:
+  - port: exporter
+    interval: 30s
+  namespaceSelector:
+    matchNames:
+    - redis
+  jobLabel: .metadata.name

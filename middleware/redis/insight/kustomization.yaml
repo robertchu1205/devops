@@ -1,0 +1,14 @@
+resources:
+- pvc.yaml
+- deploy.yaml
+- svc.yaml
+
+commonLabels:
+  app: redisinsight
+
+namespace: redis
+
+images:
+- name: redisinsight
+  newName: redislabs/redisinsight
+  newTag: 1.10.1

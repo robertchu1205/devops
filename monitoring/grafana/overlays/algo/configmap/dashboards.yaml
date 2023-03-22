@@ -1,0 +1,17 @@
+{
+  "apiVersion": 1,
+  "providers": [
+    {
+      "folder": "Default",
+      "name": "0",
+      "options": {
+          "path": "/var/lib/grafana"
+      },
+      "orgId": 1,
+      "editable": "true",
+      "allowUiUpdates": "true",
+      "updateIntervalSeconds": 10, 
+      "type": "file"
+    }
+  ]
+}

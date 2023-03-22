@@ -1,0 +1,52 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: zabbix-server-mysql
+  labels:
+    app: zabbix
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: zabbix
+  template:
+    metadata:
+      labels:
+        app: zabbix
+    spec:
+      # initContainers:
+      # - name: chown-alertscripts
+      #   image: busybox
+      #   imagePullPolicy: IfNotPresent
+      #   command: ["sh", "-c", "addgroup zabbix && adduser -D -G zabbix zabbix && chown -R zabbix:zabbix /usr/lib/zabbix/alertscripts"]
+      #   volumeMounts:
+      #   - name: alertscripts
+      #     mountPath: /usr/lib/zabbix/alertscripts
+      containers:
+      - name: zabbix-server-mysql
+        image: zabbix/zabbix-server-mysql:centos-5.4-latest
+        env:
+        - name: DB_SERVER_HOST
+          value: zabbix-mysql
+        - name: MYSQL_ROOT_PASSWORD
+          value: zabbix
+        envFrom:
+        - configMapRef:
+            name: zbx-server-config
+        volumeMounts:
+        - name: alertscripts
+          mountPath: /usr/lib/zabbix/alertscripts
+        ports:
+        - containerPort: 10051
+          name: listen
+        - containerPort: 10050
+          name: agent
+        resources:
+          requests:
+            cpu: 200m
+            memory: 600Mi
+      volumes:
+      - name: alertscripts
+        configMap:
+          defaultMode: 0777
+          name: alertscripts

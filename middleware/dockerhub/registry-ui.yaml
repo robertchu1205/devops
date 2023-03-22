@@ -1,0 +1,48 @@
+# https://github.com/Joxit/docker-registry-ui
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: registry-ui
+spec:
+  selector:
+    matchLabels:
+      app: registry-ui
+  template:
+    metadata:
+      labels:
+        app: registry-ui
+    spec:
+      containers:
+      - name: registry-ui
+        image: joxit/docker-registry-ui
+        imagePullPolicy: IfNotPresent
+        resources:
+          limits:
+            memory: "10Mi"
+            cpu: "50m"
+        env:
+        - name: REGISTRY_TITLE
+          value: Algo Dockerhub
+        - name: DELETE_IMAGES
+          value: "true"
+        # - name: REGISTRY_URL
+        #   value: http://docker-registry:5000
+        - name: PULL_URL
+          value: algo-dockerhub.aqumon.com
+        - name: SHOW_CATALOG_NB_TAGS
+          value: "false"
+        - name: SHOW_CONTENT_DIGEST
+          value: "false"
+        - name: SINGLE_REGISTRY
+          value: "true"
+        - name: CATALOG_ELEMENTS_LIMIT
+          value: "100000"
+        - name: HISTORY_CUSTOM_LABELS
+          value: ""
+        - name: NGINX_LISTEN_PORT
+          value: "80"
+        - name: NGINX_PROXY_PASS_URL
+          value: "http://docker-registry:5000"
+        ports:
+        - name: registry-ui
+          containerPort: 80

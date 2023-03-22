@@ -1,0 +1,12 @@
+resources:
+- cronjob.yaml
+- configmap.yaml
+
+namespace: docker-registry
+
+configMapGenerator:
+- files:
+  - ./backup-registry.sh
+  name: backup-script
+  options:
+    disableNameSuffixHash: true

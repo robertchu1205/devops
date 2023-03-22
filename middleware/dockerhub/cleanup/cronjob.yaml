@@ -1,0 +1,63 @@
+apiVersion: batch/v1beta1
+kind: CronJob
+metadata:
+  name: cleanup-algo-dockerhub
+spec:
+  schedule: "0 20 * * 6"
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          volumes:
+          - name: kubeconfig
+            configMap:
+              name: c03-kubeconfig
+          - name: backup-script
+            configMap:
+              name: backup-script
+          initContainers:
+          - name: backup
+          # 將/var/lib/registry保留到aliyun nas, retention兩週
+            image: algo-dockerhub.aqumon.com/dtzar/helm-kubectl:latest
+            imagePullPolicy: IfNotPresent
+            volumeMounts:
+            - name: kubeconfig
+              mountPath: /root/.kube/config
+              subPath: kubeconfig
+            - name: backup-script
+              mountPath: /tmp/backup-registry.sh
+              subPath: backup-registry.sh
+            command:
+            - /bin/sh
+            - -c
+            # - sleep 1d;
+            - kubectl cp -n docker-registry /tmp/backup-registry.sh docker-registry-0:/tmp/backup-registry.sh && kubectl exec -n docker-registry -it docker-registry-0 -- sh -cx "/bin/sh /tmp/backup-registry.sh"
+          # 照arguments清除舊的image: 保留最新3個且刪除老於半年的images
+          - name: deckschrubber
+            image: lhanxetus/deckschrubber
+            imagePullPolicy: IfNotPresent
+            args:
+            - -registry
+            - http://docker-registry:5000
+            - -username
+            - aqumon
+            - -password
+            - aqumon2050
+            - -latest
+            - "8" #oms-admin:aim,dev,colocation,live,staging
+            - -month
+            - "6"
+          containers:
+          - name: cleanup
+            image: algo-dockerhub.aqumon.com/dtzar/helm-kubectl:latest
+            imagePullPolicy: IfNotPresent
+            volumeMounts:
+            - name: kubeconfig
+              mountPath: /root/.kube/config
+              subPath: kubeconfig
+            command:
+            - /bin/sh
+            - -c
+            - kubectl exec -n docker-registry -it docker-registry-0 -- sh -cx "registry garbage-collect /etc/docker/registry/config.yml -m"
+            # - sleep 1d;
+          restartPolicy: Never

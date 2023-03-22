@@ -1,0 +1,73 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: pgadmin-config
+data:
+  servers.json: |
+    {
+      "DEV": {
+        "1": {
+          "Name": "172.31.86.30",
+          "Group": "PG",
+          "Port": "15432",
+          "Username": "postgres",
+          "Host": "172.31.86.30",
+          "SSLMode": "prefer",
+          "MaintenanceDB": "postgres"
+        },
+      },
+      "STG": {
+        "1": {
+          "Name": "jiawen-new-staging",
+          "Group": "BACKUP",
+          "Port": "15432",
+          "Username": "postgres",
+          "Host": "172.31.3.79",
+          "SSLMode": "prefer",
+          "MaintenanceDB": "postgres"
+        }
+      },
+      "PRE-PRD": {
+        "1": {
+          "Name": "aliyun-middleware",
+          "Group": "PG",
+          "Port": "45432",
+          "Username": "postgres",
+          "Host": "172.31.3.79",
+          "SSLMode": "prefer",
+          "MaintenanceDB": "postgres"
+        }
+      },
+      "PRD": {
+        "1": {
+          "Name": "present",
+          "Group": "PG",
+          "Port": "15432",
+          "Username": "postgres",
+          "Host": "172.31.74.168",
+          "SSLMode": "prefer",
+          "MaintenanceDB": "postgres"
+        },
+        "2": {
+          "Name": "new-master",
+          "Group": "PG",
+          "Port": "5432",
+          "Username": "postgres",
+          "Host": "172.31.3.79",
+          "SSLMode": "prefer",
+          "MaintenanceDB": "postgres"
+        },
+        "3": {
+          "Name": "new-replica",
+          "Group": "PG",
+          "Port": "25432",
+          "Username": "postgres",
+          "Host": "172.31.3.79",
+          "SSLMode": "prefer",
+          "MaintenanceDB": "postgres"
+        }
+      }
+    }
+  config_local.py: |
+    # AUTHENTICATION_SOURCES = ['internal', 'ldap']
+    DEFAULT_SERVER = '0.0.0.0'

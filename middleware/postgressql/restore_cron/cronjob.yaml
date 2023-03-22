@@ -1,0 +1,46 @@
+apiVersion: batch/v1beta1
+kind: CronJob
+metadata:
+  name: prd-pgdata-restore
+spec:
+  schedule: "30 23 * * *"
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          containers:
+          - name: pg-restore
+            image: timescale/timescaledb:2.4.0-pg12
+            imagePullPolicy: IfNotPresent
+            command: 
+            - sh 
+            - -c 
+            - bash -x /pgscripts/prd-pgdata-restore.sh;
+            env:
+            - name: PGPASSWORD
+              value: docker
+            - name: PGUSER
+              value: postgres
+            - name: PGHOST
+              value: 'dm-dev-timescaledb-only-one.dm-dev.svc.cluster.local'
+            - name: PGPORT
+              value: '5432'
+            - name: PGDATABASE
+              value: 'dm_dev'
+            - name: ROOT_DIR
+              value: '/mnt'
+            volumeMounts:
+            - name: hk-aliyun-nas-pvc
+              subPath: pg_backup/datamaster/logical
+              mountPath: /mnt
+            - name: pgscripts
+              mountPath: /pgscripts
+          restartPolicy: Never
+          volumes:
+          - name: hk-aliyun-nas-pvc
+            persistentVolumeClaim:
+              claimName: hk-aliyun-nas-pvc
+          - name: pgscripts
+            configMap:
+              name: pgscripts
+      backoffLimit: 0

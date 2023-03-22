@@ -1,0 +1,34 @@
+resources:
+- ./deployment.yaml
+- ./service.yaml
+
+namespace: zabbix
+
+commonLabels:
+  function: zabbix-server-mysql
+
+configMapGenerator:
+- name: alertscripts
+  # behavior: merge
+  files:
+  - ./alertscripts/dingding_push.sh
+  - ./alertscripts/lark_h.bak
+  - ./alertscripts/lark_push_high.sh
+  - ./alertscripts/lark_push.sh
+  - ./alertscripts/oa_warn_info.sh
+  options:
+    disableNameSuffixHash: true
+- name: zbx-server-config
+  literals:
+  - ZBX_CACHESIZE=512M
+  - ZBX_TIMEOUT=3
+  - ZBX_JAVAGATEWAY_ENABLE=true
+  - ZBX_STARTJAVAPOLLERS=5
+  - ZBX_ENABLE_SNMP_TRAPS=true
+  - ZBX_STARTVMWARECOLLECTORS=16
+  - ZBX_DEBUGLEVEL=2
+  - ZBX_STARTDISCOVERERS=16
+  options:
+    disableNameSuffixHash: true
+    labels:
+      function: zabbix-server-mysql

@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: backup-script
+data:
+  backup.sh: |
+    #!/bin/bash
+    set -x
+    date=$(date '+%Y%m%d-%H%M%S')
+    new_fn="$date.db"
+    pod_name=$(kubectl get po -n monitoring -l monitoring=whole-algo,app=grafana --no-headers=true | awk '{print$1}')
+    echo "kubectl cp $new_fn"
+    kubectl cp -n monitoring $pod_name:/var/lib/grafana/grafana.db /nas/$new_fn
+    #echo "retention files older than 14 days"
+    #find /nas/ -type f -mtime +14 -delete

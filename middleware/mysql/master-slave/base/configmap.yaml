@@ -1,0 +1,21 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: mysql
+  labels:
+    app: mysql
+data:
+  # Master配置
+  primary.cnf: |
+    [mysqld]
+    skip-name-resolve
+    log-bin
+    max_allowed_packet=64M
+  # Slave配置
+  replica.cnf: |
+    [mysqld]
+    skip-name-resolve
+    super-read-only
+    # log-bin=mysql-bin
+    replicate-ignore-db=mysql
+    max_allowed_packet=64M

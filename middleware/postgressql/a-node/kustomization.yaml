@@ -1,0 +1,20 @@
+resources:
+- ./sts.yaml
+- ./svc.yaml
+
+commonLabels:
+  app: timescaledb
+  service: dm-dev
+
+namePrefix: dm-dev-
+
+# configMapGenerator:
+# - files:
+#   - ./pgbackrest.conf
+#   - ./postgresql.conf
+#   name: pg-conf-files
+
+namespace: dm-dev
+
+generatorOptions:
+  disableNameSuffixHash: true

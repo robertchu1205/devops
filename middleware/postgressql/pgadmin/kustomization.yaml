@@ -1,0 +1,9 @@
+resources:
+- statefulset.yaml
+- configmap.yaml
+- service.yaml
+ 
+namespace: postgres-operator
+
+commonLabels:
+  app: pgadmin

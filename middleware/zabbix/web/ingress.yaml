@@ -1,0 +1,19 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  annotations:
+    kubernetes.io/ingress.class: nginx
+  name: zabbix-web-nginx-mysql-ingress
+  namespace: zabbix
+spec:
+  rules:
+  - host: algo-zabbix.aqumon.com
+    http:
+      paths:
+      - backend:
+          service:
+            name: zabbix-web-nginx-mysql
+            port:
+              number: 8080
+        path: /
+        pathType: Prefix

@@ -1,0 +1,13 @@
+resources:
+- configmap.yaml
+- nas-pvc.yaml
+- cronjob.yaml
+
+namespace: monitoring
+
+configMapGenerator:
+- name: own-kubeconfig
+  files:
+    - ./own-kubeconfig
+  options:
+    disableNameSuffixHash: true
