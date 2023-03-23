@@ -1,25 +1,27 @@
 apiVersion: v1
 kind: Service
 metadata:
-  name: dm-master
-  namespace: timescaledb
+  name: datamaster-master
+  annotations: 
+    service.beta.kubernetes.io/aws-load-balancer-backend-protocol: tcp
+    service.beta.kubernetes.io/aws-load-balancer-internal: 'true'
+    service.beta.kubernetes.io/aws-load-balancer-ip-address-type: ipv4
+    service.beta.kubernetes.io/aws-load-balancer-name: hk-algo-prd-eks-timescaledb
+    service.beta.kubernetes.io/aws-load-balancer-nlb-target-type: ip
+    service.beta.kubernetes.io/aws-load-balancer-scheme: internal
+    service.beta.kubernetes.io/aws-load-balancer-subnets: subnet-063c43dc372b616d0,subnet-0da14af7f50989dc1
+    service.beta.kubernetes.io/aws-load-balancer-type: nlb-ip
   labels:
-    app: dm-timescaledb
-    cluster-name: dm
     role: master
-    type: lb
-  annotations:
-    service.beta.kubernetes.io/alicloud-loadbalancer-address-type: intranet
-    service.beta.kubernetes.io/alicloud-loadbalancer-force-override-listeners: 'true'
-    service.beta.kubernetes.io/alicloud-loadbalancer-id: lb-3nslhvzs6dfzmn71z71y9
+    app: datamaster-timescaledb
+    cluster-name: datamaster
 spec:
   ports:
-    - name: postgresql
-      protocol: TCP
-      port: 5432
-      targetPort: postgresql
+  - name: postgresql
+    port: 5432
+    targetPort: postgresql
   selector:
-    app: dm-timescaledb
-    cluster-name: dm
     role: master
+    app: datamaster-timescaledb
+    cluster-name: datamaster
   type: LoadBalancer

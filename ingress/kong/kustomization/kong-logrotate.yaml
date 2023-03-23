@@ -1,0 +1,91 @@
+# reference: https://stackoverflow.com/questions/52422300/how-to-schedule-pods-restart
+
+---
+# Service account the client will use to reset the deployment,
+# by default the pods running inside the cluster can do no such things.
+kind: ServiceAccount
+apiVersion: v1
+metadata:
+  name: kong-logrotate
+  namespace: kong
+---
+# allow getting status and patching only the one deployment you want
+# to restart
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: kong-logrotate
+  namespace: kong
+rules:
+  - apiGroups: [""]
+    resources: ["pods"]
+    verbs: ["get", "list"]
+  - apiGroups: [""]
+    resources: ["pods/exec"]
+    verbs: ["create"]
+---
+# bind the role to the service account
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: kong-logrotate
+  namespace: kong
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: kong-logrotate
+subjects:
+  - kind: ServiceAccount
+    name: kong-logrotate
+    namespace: kong
+---
+apiVersion: batch/v1beta1
+kind: CronJob
+metadata:
+  name: kong-logrotate
+  namespace: kong
+spec:
+  concurrencyPolicy: Forbid
+  schedule: '0 0 * * *' # cron spec of time, here, 8 o'clock
+  successfulJobsHistoryLimit: 2
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      backoffLimit: 0 # this has very low chance of failing, as all this does
+                      # is prompt kubernetes to schedule new replica set for
+                      # the deployment
+      activeDeadlineSeconds: 600 # timeout, makes most sense with 
+                                 # "waiting for rollout" variant specified below
+      template:
+        spec:
+          serviceAccountName: kong-logrotate # name of the service
+                                             # account configured above
+          restartPolicy: Never
+          initContainers:
+            - name: logrotate
+              image: algo-dockerhub.aqumon.com/engineering/devops/docker-kong/logrotate:latest
+              command: [ "logrotate", "-f", "/etc/logrotate.d/" ]
+              imagePullPolicy: Always
+              volumeMounts:
+                - mountPath: /mnt/naslog
+                  name: logdir
+                - mountPath: /etc/logrotate.d/kong.logrotate
+                  name: configmap
+                  subPath: kong.logrotate
+          containers:
+            - name: kubectl
+              image: algo-dockerhub.aqumon.com/lib/alpine/k8s:1.18.16
+              command:
+                - bash
+                - -xc
+                - >-
+                  kubectl get pods -l app=ingress-kong --field-selector=status.phase=Running -n kong -o custom-columns=name:metadata.name --no-headers | xargs -I{} kubectl exec -n kong -c proxy {} -- bash -c "kill -USR1 \`cat /usr/local/kong/pids/nginx.pid\`"
+          volumes:
+            - name: logdir
+              persistentVolumeClaim:
+                claimName: kong-logging-pvc
+            - name: configmap
+              configMap:
+                name: kong-configmap
+          imagePullSecrets:
+            - name: algo-dockerhub-regcred

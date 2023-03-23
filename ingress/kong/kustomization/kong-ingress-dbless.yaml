@@ -1,0 +1,163 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: ingress-kong
+  name: ingress-kong
+  namespace: kong
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: ingress-kong
+  template:
+    metadata:
+      annotations:
+        prometheus.io/port: "8100"
+        prometheus.io/scrape: "true"
+        traffic.sidecar.istio.io/includeInboundPorts: ""
+        kuma.io/gateway: enabled
+      labels:
+        app: ingress-kong
+    spec:
+      serviceAccountName: kong-serviceaccount
+      initContainers:
+        - name: create-log-folder
+          image: algo-dockerhub.aqumon.com/lib/alpine-bash:latest
+          command: ['bash', '-c', 'mkdir -p /mnt/naslog/file_log /mnt/naslog/general_log && ls -lah /mnt/naslog/']
+          volumeMounts:
+          - mountPath: /mnt/naslog
+            name: logdir
+      containers:
+      - name: proxy
+        image: algo-dockerhub.aqumon.com/engineering/devops/docker-kong:2.4.1-c
+        env:
+          # servers
+        - name: KONG_PROXY_LISTEN
+          value: 0.0.0.0:8000, 0.0.0.0:8443 ssl http2
+        - name: KONG_PORT_MAPS
+          value: "80:8000, 443:8443"
+        - name: KONG_ADMIN_LISTEN
+          value: 0.0.0.0:8444 ssl
+        - name: KONG_STATUS_LISTEN
+          value: 0.0.0.0:8100
+          # DB
+        - name: KONG_DATABASE
+          value: "off"
+          # runtime tweaks
+        - name: KONG_NGINX_WORKER_PROCESSES
+          value: "2"
+        - name: KONG_NGINX_HTTP_LOG_FORMAT
+          value: main '$server_addr - $host - $remote_addr - $remote_user [$time_local] \"$request\" $status $body_bytes_sent \"$http_referer\" \"$http_user_agent\" [$request_time]'
+          # logging
+        - name: KONG_ADMIN_ACCESS_LOG
+          value: /mnt/naslog/general_log/admin_access.log main
+        - name: KONG_ADMIN_ERROR_LOG
+          value: /mnt/naslog/general_log/admin_error.log
+        - name: KONG_PROXY_ACCESS_LOG
+          value: /mnt/naslog/general_log/proxy_access.log main
+        - name: KONG_PROXY_ERROR_LOG
+          value: /mnt/naslog/general_log/proxy_error.log
+        lifecycle:
+          preStop:
+            exec:
+              command: [ "/bin/sh", "-c", "kong quit" ]
+        ports:
+        - name: proxy
+          containerPort: 8000
+          protocol: TCP
+        - name: proxy-ssl
+          containerPort: 8443
+          protocol: TCP
+        - name: metrics
+          containerPort: 8100
+          protocol: TCP
+        - name: admin
+          containerPort: 8001
+          protocol: TCP
+        livenessProbe:
+          httpGet:
+            path: /status
+            port: 8100
+            scheme: HTTP
+          initialDelaySeconds: 5
+          timeoutSeconds: 1
+          periodSeconds: 10
+          successThreshold: 1
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /status
+            port: 8100
+            scheme: HTTP
+          initialDelaySeconds: 5
+          timeoutSeconds: 1
+          periodSeconds: 10
+          successThreshold: 1
+          failureThreshold: 3
+        volumeMounts:
+          - mountPath: /mnt/naslog
+            name: logdir
+      - name: ingress-controller
+        env:
+        - name: CONTROLLER_KONG_ADMIN_URL
+          value: "https://127.0.0.1:8444"
+        - name: CONTROLLER_KONG_ADMIN_TLS_SKIP_VERIFY
+          value: "true"
+        - name: CONTROLLER_PUBLISH_SERVICE
+          value: "kong/kong-proxy"
+        - name: POD_NAME
+          valueFrom:
+            fieldRef:
+              apiVersion: v1
+              fieldPath: metadata.name
+        - name: POD_NAMESPACE
+          valueFrom:
+            fieldRef:
+              apiVersion: v1
+              fieldPath: metadata.namespace
+        image: kong/kubernetes-ingress-controller:1.3
+        imagePullPolicy: IfNotPresent
+        ports:
+        - name: webhook
+          containerPort: 8080
+          protocol: TCP
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: 10254
+            scheme: HTTP
+          initialDelaySeconds: 5
+          timeoutSeconds: 1
+          periodSeconds: 10
+          successThreshold: 1
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /healthz
+            port: 10254
+            scheme: HTTP
+          initialDelaySeconds: 5
+          timeoutSeconds: 1
+          periodSeconds: 10
+          successThreshold: 1
+          failureThreshold: 3
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              podAffinityTerm:
+                labelSelector:
+                  matchExpressions:
+                    - key: app
+                      operator: In
+                      values:
+                        - ingress-kong
+                topologyKey: kubernetes.io/hostname
+      volumes:
+        - name: logdir
+          persistentVolumeClaim:
+            claimName: kong-logging-pvc
+      imagePullSecrets:
+        - name: algo-dockerhub-regcred

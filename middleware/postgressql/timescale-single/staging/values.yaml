@@ -1,77 +1,143 @@
+# image:
+#   repository: timescale/timescaledb-ha
+#   tag: pg12.7-ts2.4-latest
+# resources:
+#   limits:
+#     cpu: 750m
+#     memory: 2Gi
+#   requests:
+#     cpu: 50m
+#     memory: 200Mi
+# sharedMemory:
+#   useMount: true
+# loadBalancer:
+#   enabled: false
+#   # annotations:
+#   #   service.beta.kubernetes.io/alicloud-loadbalancer-address-type: intranet
+#   #   service.beta.kubernetes.io/alicloud-loadbalancer-force-override-listeners: 'true'
+#   #   service.beta.kubernetes.io/alicloud-loadbalancer-id: lb-3nslhvzs6dfzmn71z71y9
+# replicaCount: 2
+# persistentVolumes:
+#   data:
+#     size: 130Gi
+#     storageClass: alicloud-disk-efficiency
+#   wal:
+#     size: 20Gi
+#     storageClass: alicloud-disk-efficiency
+#   tablespaces:
+#     xmlspace:
+#       size: 270Gi
+#       storageClass: alicloud-disk-efficiency
+# patroni:
+#   bootstrap:
+#     dcs:
+#       postgresql:
+#         parameters:
+#           max_replication_slots: 4000
+#           max_connections: 256
+#           log_temp_files: 0
+#           log_autovacuum_min_duration: 9s
+#           log_destination: stderr,csvlog
+#           log_checkpoints: on
+#           log_connections: on
+#           log_disconnections: on
+#           log_duration: on
+#           log_lock_waits: on
+#           log_min_duration_statement: 2222ms
+#           log_rotation_age: 2min
+#           log_rotation_size: 32MB
+#           logging_collector: on
+#           log_min_error_statement: info
+#           log_min_messages: info
+#           log_timezone: Asia/Shanghai
+#           max_wal_size: 16GB
+#           timescaledb.restoring: on
+#           work_mem: 64MB
+# # patroni:
+# #   postgresql:
+# #     pg_hba:
+# #     - local      all            postgres        all                   peer
+# #     - local      all            all                                   md5
+# #     - hostnossl all,replication all                all                reject
+# #     - hostssl   all             all                127.0.0.1/32       md5
+# #     - hostssl   all             all                ::1/128            md5
+# #     - hostssl   replication     standby            all                md5
+# #     - hostssl   all             all                all                md5
+# #     - host    all             all              0.0.0.0/0                       md5
+# #     - host    all             all              ::/0                            md5
+# prometheus:
+#   enabled: true
+#   image:
+#     tag: latest
+# bootstrapFromBackup:
+#   enabled: true
+#   repo1-path: /timescaledb/dm
+#   # secretName: pgbackrest-bootstrap # optional
+# timescaledbTune:
+#   enabled: true
+
 image:
   repository: timescale/timescaledb-ha
   tag: pg12.7-ts2.4-latest
-resources:
-  limits:
-    cpu: 750m
-    memory: 2Gi
-  requests:
-    cpu: 50m
-    memory: 200Mi
-sharedMemory:
-  useMount: true
-loadBalancer:
-  enabled: false
-  # annotations:
-  #   service.beta.kubernetes.io/alicloud-loadbalancer-address-type: intranet
-  #   service.beta.kubernetes.io/alicloud-loadbalancer-force-override-listeners: 'true'
-  #   service.beta.kubernetes.io/alicloud-loadbalancer-id: lb-3nslhvzs6dfzmn71z71y9
-replicaCount: 2
-persistentVolumes:
-  data:
-    size: 130Gi
-    storageClass: alicloud-disk-efficiency
-  wal:
-    size: 20Gi
-    storageClass: alicloud-disk-efficiency
-  tablespaces:
-    xmlspace:
-      size: 270Gi
-      storageClass: alicloud-disk-efficiency
+secrets:
+  pgbackrest:
+    PGBACKREST_REPO1_S3_REGION: "ap-east-1"
+    PGBACKREST_REPO1_S3_KEY: "AKIAUY2AFOSGIWRWNIEM"
+    PGBACKREST_REPO1_S3_KEY_SECRET: "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"
+    PGBACKREST_REPO1_S3_BUCKET: "aqm-algo-pgbackup"
+    PGBACKREST_REPO1_S3_ENDPOINT: "s3-ap-east-1.amazonaws.com"
 patroni:
   bootstrap:
     dcs:
       postgresql:
         parameters:
-          max_replication_slots: 4000
+          ## https://dba.stackexchange.com/questions/259926/queries-on-large-database-kill-connection-to-the-server-works-with-limit
+          # jit: off
+          ## avoid wal has no space
+          # max_wal_size: 10GB # original: 18416 MB
+          # max_slot_wal_keep_size: 29GB
+          max_locks_per_transaction: 512
           max_connections: 256
-          log_temp_files: 0
-          log_autovacuum_min_duration: 9s
-          log_destination: stderr,csvlog
-          log_checkpoints: on
-          log_connections: on
-          log_disconnections: on
-          log_duration: on
-          log_lock_waits: on
-          log_min_duration_statement: 2222ms
-          log_rotation_age: 2min
-          log_rotation_size: 32MB
-          logging_collector: on
-          log_min_error_statement: info
-          log_min_messages: info
+          wal_keep_segments: 4
           log_timezone: Asia/Shanghai
-          max_wal_size: 16GB
-          timescaledb.restoring: on
-          work_mem: 64MB
-# patroni:
-#   postgresql:
-#     pg_hba:
-#     - local      all            postgres        all                   peer
-#     - local      all            all                                   md5
-#     - hostnossl all,replication all                all                reject
-#     - hostssl   all             all                127.0.0.1/32       md5
-#     - hostssl   all             all                ::1/128            md5
-#     - hostssl   replication     standby            all                md5
-#     - hostssl   all             all                all                md5
-#     - host    all             all              0.0.0.0/0                       md5
-#     - host    all             all              ::/0                            md5
+          # archive_cleanup_command: pg_archivecleanup /var/lib/postgresql/wal/pg_wal %r
+          # wal_compression: on
+#           max_replication_slots: 0
+#           hot_standby: 'off'
+resources:
+  limits:
+    cpu: 1.7
+    memory: 13.7Gi
+  # requests:
+  #   cpu: 50m
+  #   memory: 1Gi
+sharedMemory:
+  useMount: true
+loadBalancer:
+  enabled: false
+replicaCount: 1
+persistentVolumes:
+  data:
+    size: 300Gi
+    storageClass: ebs-sc
+  wal:
+    # size: 100Gi
+    size: 50Gi
+    storageClass: ebs-sc
+  tablespaces:
+    xmlspace:
+      size: 500Gi
+      storageClass: ebs-sc
 prometheus:
   enabled: true
   image:
     tag: latest
 bootstrapFromBackup:
-  enabled: true
-  repo1-path: /timescaledb/dm
-  # secretName: pgbackrest-bootstrap # optional
+  enabled: True
+  repo1-path: /timescaledb/datamaster
 timescaledbTune:
   enabled: true
+  # args: {}
+  # max-conns: 120
+    # cpus: 5
+    # memory: 4GB

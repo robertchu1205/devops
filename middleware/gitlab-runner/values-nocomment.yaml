@@ -1,0 +1,126 @@
+affinity: {}
+checkInterval: 30
+concurrent: 10
+configMaps: {}
+gitlabUrl: https://gitlab.aqumon.com
+hostAliases: []
+image:
+  image: gitlab-org/gitlab-runner
+  registry: registry.gitlab.com
+imagePullPolicy: Always
+imagePullSecrets:
+- name: algo-dockerhub-regcred
+metrics:
+  enabled: true
+  port: 9252
+  portName: metrics
+  serviceMonitor:
+    enabled: false
+nodeSelector: {}
+podAnnotations: {}
+podLabels: {}
+podSecurityContext:
+  fsGroup: 65533
+  runAsUser: 100
+priorityClassName: ""
+rbac:
+  clusterWideAccess: false
+  create: true
+  imagePullSecrets:
+  - algo-dockerhub-regcred
+  podSecurityPolicy:
+    enabled: false
+    resourceNames:
+    - gitlab-runner
+  rules:
+  - apiGroups:
+    - ""
+    resources:
+    - pods
+    verbs:
+    - list
+    - get
+    - watch
+    - create
+    - delete
+  - apiGroups:
+    - ""
+    resources:
+    - pods/exec
+    verbs:
+    - create
+  - apiGroups:
+    - ""
+    resources:
+    - pods/log
+    verbs:
+    - get
+  - apiGroups:
+    - ""
+    resources:
+    - pods/attach
+    verbs:
+    - list
+    - get
+    - create
+    - delete
+    - update
+  - apiGroups:
+    - ""
+    resources:
+    - secrets
+    verbs:
+    - list
+    - get
+    - create
+    - delete
+    - update
+  - apiGroups:
+    - ""
+    resources:
+    - configmaps
+    verbs:
+    - list
+    - get
+    - create
+    - delete
+    - update
+resources: {}
+runnerRegistrationToken: LHGuypUgQ5USD_NHAaAt
+runners:
+  unregisterRunners: true
+  runUntagged: true
+  pollTimeout: 3600
+  builds: {}
+  cache: {}
+  config: |
+    [[runners]]
+      [runners.kubernetes]
+        namespace = "{{.Release.Namespace}}"
+        image = "ubuntu:16.04"
+        poll_timeout = 3600
+  helpers: {}
+  imagePullSecrets:
+  - algo-dockerhub-regcred
+  name: hk-algo-stg-02-gitlab-runner-algo-stg
+  namespace: algo-stg
+  services: {}
+  tags: python,docker,hk,aws,group,eks,hk-algo-stg-02-eks-cluster
+secrets: []
+securityContext:
+  allowPrivilegeEscalation: false
+  capabilities:
+    drop:
+    - ALL
+  privileged: false
+  readOnlyRootFilesystem: false
+  runAsNonRoot: true
+service:
+  enabled: false
+  type: ClusterIP
+sessionServer:
+  enabled: false
+terminationGracePeriodSeconds: 3600
+tolerations: []
+volumeMounts: []
+volumes: []

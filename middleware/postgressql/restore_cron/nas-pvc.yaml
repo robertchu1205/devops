@@ -1,33 +1,36 @@
 apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: static-nas-timescaledb
+spec:
+  capacity:
+    storage: 1Gi
+  nfs:
+    server: fs-0aa5e3eb22ea717da.efs.ap-east-1.amazonaws.com
+    path: /hk-algo-prd-eks-cluster
+  accessModes:
+    - ReadWriteMany
+  persistentVolumeReclaimPolicy: Retain
+  mountOptions:
+    - hard
+    - nfsvers=4.1
+    - rsize=1048576
+    - wsize=1048576
+    - timeo=600
+    - retrans=2
+    - noresvport 
+  volumeMode: Filesystem
+---
+apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
-  name: hk-aliyun-nas-pvc
+  name: static-nas-timescaledb
   namespace: timescaledb
 spec:
   accessModes:
     - ReadWriteMany
   resources:
     requests:
-      storage: 20Gi
-  volumeName: hk-aliyun-nas-pv
+      storage: 1Gi
+  volumeMode: Filesystem
   storageClassName: ''
-  volumeMode: Filesystem
----
-apiVersion: v1
-kind: PersistentVolume
-metadata:
-  name: hk-aliyun-nas-pv
-  namespace: timescaledb
-spec:
-  capacity:
-    storage: 20Gi
-  nfs:
-    server: 12b63749986-vvr1.cn-hongkong.nas.aliyuncs.com
-    path: /
-  accessModes:
-    - ReadWriteMany
-  persistentVolumeReclaimPolicy: Retain
-  mountOptions:
-    - nolock,tcp,noresvport
-    - vers=3
-  volumeMode: Filesystem

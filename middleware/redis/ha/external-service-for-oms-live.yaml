@@ -1,0 +1,11 @@
+kind: Service
+apiVersion: v1
+metadata:
+  name: oms-redis
+  namespace: oms-live
+spec:
+  type: ExternalName
+  externalName: redis-redis-ha-haproxy.redis.svc.cluster.local
+  ports:
+    - name: redis
+      port: 6379

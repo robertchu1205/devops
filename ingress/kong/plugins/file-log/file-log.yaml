@@ -1,0 +1,13 @@
+# https://docs.konghq.com/hub/kong-inc/file-log/
+apiVersion: configuration.konghq.com/v1
+kind: KongClusterPlugin
+metadata:
+  name: kong-file-log-plugin
+  annotations:
+    kubernetes.io/ingress.class: kong
+  labels:
+    global: "true"
+config: 
+  path: /mnt/naslog/file_log/kong.log
+  reopen: true
+plugin: file-log

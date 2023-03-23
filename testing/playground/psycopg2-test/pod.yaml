@@ -1,0 +1,22 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: psycopg2-test
+  labels:
+    app: psycopg2-test
+spec:
+  # restartPolicy: Never
+  volumes:
+  - name: python-scripts
+    configMap:
+      name: python-scripts
+  containers:
+  - name: psycopg2-test
+    image: algo-dockerhub.aqumon.com/engineering/datamaster/app:base
+    volumeMounts:
+      - mountPath: /scripts
+        name: python-scripts
+    command:
+    - /bin/bash
+    - -c
+    - while true; do sleep 60; python /scripts/psycopg2_test.py; done;

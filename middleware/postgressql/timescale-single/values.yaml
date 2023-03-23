@@ -1,118 +1,104 @@
 image:
   repository: timescale/timescaledb-ha
   tag: pg12.7-ts2.4-latest
+secrets:
+  pgbackrest:
+    PGBACKREST_REPO1_S3_REGION: "ap-east-1"
+    PGBACKREST_REPO1_S3_KEY: "AKIAUY2AFOSGIWRWNIEM"
+    PGBACKREST_REPO1_S3_KEY_SECRET: "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"
+    PGBACKREST_REPO1_S3_BUCKET: "aqm-algo-pgbackup"
+    PGBACKREST_REPO1_S3_ENDPOINT: "s3-ap-east-1.amazonaws.com"
 resources:
   limits:
-    cpu: 10
-    memory: 26Gi
+    cpu: 7.5
+    memory: 29Gi
   requests:
     cpu: 5
     memory: 13Gi
 sharedMemory:
   useMount: true
-loadBalancer:
-  enabled: false
-  # annotations:
-  #   service.beta.kubernetes.io/alicloud-loadbalancer-address-type: intranet
-  #   service.beta.kubernetes.io/alicloud-loadbalancer-force-override-listeners: 'true'
-  #   service.beta.kubernetes.io/alicloud-loadbalancer-id: lb-3nslhvzs6dfzmn71z71y9
-replicaCount: 2
-persistentVolumes:
-  data:
-    size: 1Ti
-    storageClass: alicloud-disk-efficiency
-  wal:
-    size: 500Gi
-    storageClass: alicloud-disk-efficiency
-  tablespaces:
-    xmlspace:
-      size: 1Ti
-      storageClass: alicloud-disk-efficiency
 patroni:
-  # postgresql:
-  #   pg_hba:
-  #   - host      all             postgres        all                   md5
-  #   - local     all             all                                   trust
-  #   # IPv4 local connections:
-  #   - host      all             all             127.0.0.1/32          trust
-  #   - host      all             all             all                   trust
-  #   # IPv6 local connections:
-  #   - host      all             all             ::1/128               md5
-  #   # - hostnossl all,replication all             all                reject
-  #   - hostssl   all             all             127.0.0.1/32          md5
-  #   - hostssl   all             all             ::1/128               md5
-  #   - hostssl   replication     standby         all                   md5
-  #   - hostssl   all             all             all                   md5
   bootstrap:
     dcs:
       postgresql:
         parameters:
-          max_wal_size: 400GB  # 80% of the Volume Size
+          # max_wal_size: 400GB  # 80% of the Volume Size
           max_replication_slots: 4000
           max_connections: 256
           wal_keep_segments: 2000
-          log_min_duration_statement: 100 # -1
+          # wal_compression: on
+          # archive_cleanup_command: pg_archivecleanup /var/lib/postgresql/wal/pg_wal %r
+          # archive_cleanup_command: find /var/lib/postgresql/wal/pg_wal -mtime +7 -delete
           work_mem: 64MB
           timescaledb.restoring: on
           log_timezone: Asia/Shanghai
-          log_min_messages: info
-          log_min_error_statement: info
-          log_lock_waits: off
-          log_disconnections: off
-          log_connections: on
-          log_duration: on
-          log_checkpoints: off
-          log_autovacuum_min_duration: -1
-#           ssl: off # replication would fail
-#           shared_buffers: 4GB # 25% of available ec2 instance memory
-#           logging_collector: on # all of the traffic coming to PostgreSQL system tables
-#           temp_file_limit: '-1'
-#           synchronous_commit: remote_apply # remote_apply will throttle the replica's, see also the comment at patroni.bootstrap.synchronous_mode
-#           wal_buffers: -1
-#           shared_preload_libraries: 'timescaledb'
-#           tcp_keepalives_interval: 75
-#           tcp_keepalives_idle: 7200
-#           autovacuum_analyze_scale_factor: 0.1
-#           autovacuum_vacuum_scale_factor: 0.2
-#           autovacuum_vacuum_cost_limit: -1
-#           autovacuum_naptime: 10
-#           unix_socket_permissions: 0777
-#           archive_timeout: 0
+loadBalancer:
+  enabled: false
+replicaCount: 3
+persistentVolumes:
+  data:
+    size: 1Ti
+    storageClass: gp2
+  wal:
+    size: 100Gi
+    storageClass: gp2
+  tablespaces:
+    xmlspace:
+      size: 1Ti
+      storageClass: gp2
 prometheus:
   enabled: true
   image:
     tag: latest
+# bootstrapFromBackup:
+#   enabled: True
+#   repo1-path: /timescaledb/datamaster
 backup:
   enabled: true
+  # utc
   jobs:
     - name: full-weekly
       type: full
-      schedule: "0 22 * * 6"
+      schedule: "0 14 * * 6"
+    - name: differential-daily
+      type: diff
+      schedule: "30 20 * * *"
     - name: incremental-daily
       type: incr
-      schedule: "30 4 * * *"
+      schedule: "30 21 * * *"
 timescaledbTune:
   enabled: true
   args:
     max-conns: 256
     cpus: 9
     memory: 24GB
-bootstrapFromBackup:
-  enabled: True
-  repo1-path: /timescaledb/dm
-  # secretName: pgbackrest-bootstrap # optional
 tolerations:
-- key: cpu
+- key: node_type
   operator: Equal
-  value: high
+  value: 2xlarge
   effect: NoSchedule
 affinity:
   nodeAffinity:
     preferredDuringSchedulingIgnoredDuringExecution:
-      - weight: 70
+      - weight: 70 
         preference:
           matchExpressions:
-            - key: cpu
+            - key: eks.amazonaws.com/nodegroup
               operator: In
               values:
-                - high
+                - hk-algo-prd-eks-cluster-workernodes-1b-2xlarge
+serviceMonitor:
+  # Specifies whether ServiceMonitor for Prometheus operator should be created
+  enabled: false
+  portName: metrics
+  path: /metrics
+  interval: 10s
+  # scrapeTimeout: 30s
+  # Specifies namespace, where ServiceMonitor should be installed
+  # namespace: monitoring
+  # labels:
+  #   release: prometheus
+  # honorLabels: true
+  # metricRelabelings: []
+  # targetLabels:
+  #   - foo

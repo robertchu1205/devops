@@ -3,12 +3,13 @@ resources:
 
 namespace: timescaledb
 
-namePrefix: restore-job-
+namePrefix: restore-job-all-
 
 configMapGenerator:
 - name: pgscripts
   files:
-  - ./scripts/pro-pg-backup.sh
+  - ./scripts/prd-pgdata-backup.sh
+  - ./scripts/pro-pg-restore.sh
   - ./scripts/pro-pg-xml-backup.sh
   - ./scripts/pro-pg-xml-restore.sh
 

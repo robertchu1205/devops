@@ -1,0 +1,19 @@
+# ref: https://github.com/Kong/kong-build-tools/blob/master/kong.logrotate
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: kong-configmap
+  namespace: kong
+data:
+  kong.logrotate: |
+    /mnt/naslog/general_log/*.log /mnt/naslog/file_log/kong.log {
+      create 0644 kong nogroup
+      dateext
+      dateformat .%Y%m%d
+      rotate 180
+      daily
+      missingok
+      compress
+      notifempty
+      sharedscripts
+    }

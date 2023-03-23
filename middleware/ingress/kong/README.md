@@ -1,1 +1,0 @@
-https://github.com/Kong/charts/blob/main/charts/kong/README.md#db-less-deployment

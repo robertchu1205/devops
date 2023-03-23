@@ -9,7 +9,8 @@ exclude_cron='public.django_celery_beat_periodictask'
     psql -d $master_db -c "ALTER DATABASE $master_db SET timescaledb.restoring = off";
     pg_dump -Fc --table=$exclude_cron --table=$exclude_table_data --table=$exclude_celery_data $master_db > $ROOT_DIR/jenkins_excluded_table.dump
 } || {
-    echo "error occured, removing $ROOT_DIR/jenkins_excluded_table.dump"
-    rm -rf $ROOT_DIR/jenkins_excluded_table.dump
+    echo "error occured"
+    # echo ", removing $ROOT_DIR/jenkins_excluded_table.dump"
+    # rm -rf $ROOT_DIR/jenkins_excluded_table.dump
     exit 1
 }

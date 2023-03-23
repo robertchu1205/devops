@@ -1,0 +1,60 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: httpbin
+  namespace: <your-name-space>
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: httpbin
+      version: v1
+  template:
+    metadata:
+      labels:
+        app: httpbin
+        version: v1
+    spec:
+      containers:
+      - image: docker.io/kennethreitz/httpbin
+        imagePullPolicy: IfNotPresent
+        name: httpbin
+        ports:
+        - containerPort: 80
+---
+kind: Service
+apiVersion: v1
+metadata:
+  name: httpbin
+  namespace: <your-name-space>
+spec:
+  ports:
+    - name: http
+      protocol: TCP
+      port: 80
+      targetPort: 80
+  selector:
+    app: httpbin
+  type: ClusterIP
+---
+kind: Ingress
+apiVersion: extensions/v1beta1
+metadata:
+  name: httpbin
+  namespace: <your-name-space>
+  annotations:
+    konghq.com/preserve-host: 'true'
+    konghq.com/strip-path: 'true'
+    kubernetes.io/ingress.class: kong
+spec:
+  tls:
+    - hosts:
+        - <your-host> # e.g. algo-kongtest.aqumon.com
+      secretName: star-aqumon-com-cert
+  rules:
+    - http:
+        paths:
+          - path: /httpbin
+            backend:
+              serviceName: httpbin
+              servicePort: 80

@@ -1,0 +1,17 @@
+# https://github.com/kubernetes-sigs/aws-ebs-csi-driver/blob/master/docs/tagging.md
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: ebs-sc
+  annotations:
+    storageclass.kubernetes.io/is-default-class: 'true'
+provisioner: ebs.csi.aws.com
+parameters:
+  tagSpecification_1: "map-migrated-project-id=GCR-Migration-2021-398"
+  tagSpecification_2: "map-migrated-cnmap=d-server-0067yxz39nth5o"
+  tagSpecification_4: "pvcnamespace={{ .PVCNamespace }}"
+  tagSpecification_5: "pvcname={{ .PVCName }}"
+  tagSpecification_6: "pvname={{ .PVName }}"
+reclaimPolicy: Delete
+volumeBindingMode: WaitForFirstConsumer
+allowVolumeExpansion: true

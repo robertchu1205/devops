@@ -1,0 +1,18 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: datamaster-master-nodeport
+  namespace: timescaledb
+  labels:
+    type: nodeport
+spec:
+  ports:
+  - name: postgresql
+    port: 5432
+    targetPort: postgresql
+    nodePort: 30543
+  selector:
+    role: master
+    app: datamaster-timescaledb
+    cluster-name: datamaster
+  type: NodePort

@@ -1,0 +1,10 @@
+resources:
+- ./node-exporter.yaml
+- ./kube-state-metrics.yaml
+- ./kubelet.yaml
+
+namespace: monitoring
+
+commonLabels:
+  app.kubernetes.io/part-of: kube-prometheus
+  monitoring: prometheus

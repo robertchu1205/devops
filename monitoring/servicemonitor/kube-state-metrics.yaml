@@ -1,0 +1,37 @@
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: kube-state-metrics
+  labels:
+    app.kubernetes.io/name: kube-state-metrics
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: kube-state-metrics
+  endpoints:
+    - port: metrics
+      path: /metrics
+      targetPort: 8081
+      honorLabels: true
+      scheme: http
+      tlsConfig:
+        insecureSkipVerify: true
+# apiVersion: monitoring.coreos.com/v1
+# kind: PodMonitor
+# metadata:
+#   labels:
+#     app.kubernetes.io/name: kube-state-metrics
+#   name: kube-state-metrics
+#   namespace: monitoring
+# spec:
+#   jobLabel: metadata.name
+#   namespaceSelector:
+#     matchNames:
+#       - monitoring
+#   podMetricsEndpoints:
+#     - interval: 30s
+#       path: /metrics
+#       port: kube-state-metrics
+#   selector:
+#     matchLabels:
+#       app.kubernetes.io/name: kube-state-metrics

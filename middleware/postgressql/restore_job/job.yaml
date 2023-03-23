@@ -11,22 +11,22 @@ spec:
         command: 
         - sh 
         - -c 
-        - sleep 1m && bash -x /pgscripts/pro-pg-xml-restore.sh;
+        - bash -x /pgscripts/pro-pg-restore.sh && bash -x /pgscripts/pro-pg-xml-restore.sh
         env:
         - name: PGPASSWORD
           value: docker
         - name: PGUSER
           value: postgres
         volumeMounts:
-        - name: hk-aliyun-nas-pvc
+        - name: static-nas-timescaledb
           mountPath: /mnt
         - name: pgscripts
           mountPath: /pgscripts
       restartPolicy: Never
       volumes:
-      - name: hk-aliyun-nas-pvc
+      - name: static-nas-timescaledb
         persistentVolumeClaim:
-          claimName: hk-aliyun-nas-pvc
+          claimName: static-nas-timescaledb
       - name: pgscripts
         configMap:
           name: pgscripts
